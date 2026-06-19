@@ -302,7 +302,13 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const EV_ID=new URLSearchParams(location.search).get('evento');
+let SB=null;
+try{ if(EV_ID&&window.supabase){ SB=window.supabase.createClient('https://mvjbsdpfjhywhaonvpfl.supabase.co','sb_publishable_VMJzYe1AwL9zEoFs-ljUIw_OOkDpqhy'); } }catch(e){}
+let _evSaveT=null;
+function saveToEvent(){ if(!SB||!EV_ID) return; clearTimeout(_evSaveT); _evSaveT=setTimeout(async function(){ try{ const s=snapshot(); const payload={name:s.name,canvasW:s.canvasW,canvasH:s.canvasH,inventory:s.inventory,items:s.items}; await SB.from('lola_eventos').update({layout_json:payload}).eq('id',EV_ID); const b=document.getElementById('btnSave'); if(b)b.textContent='Salvo no evento \u2713'; }catch(e){} },800); }
 /* ---------- Tipos de mobiliário ---------- */
 /* Mobiliário real do Lola — tamanhos em px na escala da planta (50 px = 1 metro) */
 const TYPES = {
@@ -594,7 +600,7 @@ $("#fileFloor").onchange=e=>{
 function getLayouts(){ try{return JSON.parse(localStorage.getItem(LS_LAYOUTS))||{};}catch{return{};} }
 function setLayouts(o){ localStorage.setItem(LS_LAYOUTS,JSON.stringify(o)); }
 function snapshot(){ return {name:state.name,floor:state.floor,canvasW:state.canvasW,canvasH:state.canvasH,inventory:state.inventory,items:state.items}; }
-function saveWorking(){ try{localStorage.setItem(LS_WORKING,JSON.stringify(snapshot()));}catch{} }
+function saveWorking(){ try{localStorage.setItem(LS_WORKING,JSON.stringify(snapshot()));}catch{} if(EV_ID) saveToEvent(); }
 
 $("#layoutName").oninput=e=>{ state.name=e.target.value; saveWorking(); };
 
@@ -764,9 +770,15 @@ function exportPNG(){
 $("#btnPng").onclick=exportPNG;
 
 /* ---------- Init ---------- */
-(function init(){
+(async function init(){
   let restored=false;
-  try{ const w=JSON.parse(localStorage.getItem(LS_WORKING)); if(w&&w.items){ loadLayout(w); restored=true; } }catch{}
+  if(EV_ID && SB){
+    try{ const r=await SB.from('lola_eventos').select('layout_json').eq('id',EV_ID).single(); if(r&&r.data&&r.data.layout_json&&r.data.layout_json.items){ loadLayout(r.data.layout_json); restored=true; } }catch(e){}
+    ['btnLoad','btnNew','layoutName'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+    var bs=document.getElementById('btnSave'); if(bs){ bs.textContent='\uD83D\uDCBE Salvar no evento'; bs.onclick=function(){ if(!state.name)state.name='Layout do evento'; saveToEvent(); toast('Salvo no evento \u2713'); }; }
+  } else {
+    try{ const w=JSON.parse(localStorage.getItem(LS_WORKING)); if(w&&w.items){ loadLayout(w); restored=true; } }catch{}
+  }
   if(!restored || !state.floor){ state.floor=DEFAULT_FLOOR; state.canvasW=FLOOR_W; state.canvasH=FLOOR_H; }
   renderCanvas(); renderPalette(); renderCombos();
 })();
