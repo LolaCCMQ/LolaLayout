@@ -70,7 +70,7 @@
   .empty-hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;text-align:center;padding:30px;pointer-events:none}
 
   .item{position:absolute;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#2a2420;user-select:none;touch-action:none;border-radius:7px;filter:drop-shadow(0 1.5px 2px rgba(80,50,30,.28))}
-  .item .lbl{pointer-events:none;text-shadow:0 1px 1px rgba(255,255,255,.25)}
+  .item .lbl{pointer-events:none;font-size:16px;font-weight:800;color:#1b1a18;text-shadow:0 0 3px rgba(255,255,255,.95),0 0 2px rgba(255,255,255,.95)}
   .item.sel{outline:2px solid var(--accent2);outline-offset:2px;z-index:50}
   .item .rot-h{position:absolute;top:-22px;left:50%;width:14px;height:14px;margin-left:-7px;background:var(--accent2);border:2px solid #1b1a18;border-radius:50%;cursor:grab;display:none}
   .item.primary .rot-h{display:block}
@@ -182,7 +182,7 @@
       <div class="toggle-bar">
         <label><input type="checkbox" id="chkGrid" checked> Grade</label>
         <label><input type="checkbox" id="chkSnap" checked> Encaixar</label>
-        <label><input type="checkbox" id="chkLabels" checked> Rótulos</label>
+        <label><input type="checkbox" id="chkLabels" checked> Números</label>
       </div>
 
       <div class="zoom-bar">
@@ -209,10 +209,29 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const EV_ID=new URLSearchParams(location.search).get('evento');
+const LIB_MODE=new URLSearchParams(location.search).get('lib')==='1';
 let SB=null;
-try{ if(EV_ID&&window.supabase){ SB=window.supabase.createClient('https://mvjbsdpfjhywhaonvpfl.supabase.co','sb_publishable_VMJzYe1AwL9zEoFs-ljUIw_OOkDpqhy'); } }catch(e){}
+try{ if((EV_ID||LIB_MODE)&&window.supabase){ SB=window.supabase.createClient('https://mvjbsdpfjhywhaonvpfl.supabase.co','sb_publishable_VMJzYe1AwL9zEoFs-ljUIw_OOkDpqhy'); } }catch(e){}
 let _evSaveT=null;
 function saveToEvent(){ if(!SB||!EV_ID) return; clearTimeout(_evSaveT); _evSaveT=setTimeout(async function(){ try{ const s=snapshot(); const payload={name:s.name,canvasW:s.canvasW,canvasH:s.canvasH,inventory:s.inventory,items:s.items}; await SB.from('lola_eventos').update({layout_json:payload}).eq('id',EV_ID); const b=document.getElementById('btnSave'); if(b)b.textContent='Salvo no evento \u2713'; }catch(e){} },800); }
+async function libList(){ if(!SB) return []; try{ const r=await SB.from('lola_layout_biblioteca').select('id,nome,layout_json,updated_at').order('updated_at',{ascending:false}); return r.error?[]:(r.data||[]); }catch(e){ return []; } }
+async function libSave(nome){ if(!SB) return false; const s=snapshot(); const payload={name:nome,canvasW:s.canvasW,canvasH:s.canvasH,inventory:s.inventory,items:s.items}; try{ const ex=await SB.from('lola_layout_biblioteca').select('id').eq('nome',nome).maybeSingle(); if(ex&&ex.data){ await SB.from('lola_layout_biblioteca').update({layout_json:payload,updated_at:new Date().toISOString()}).eq('id',ex.data.id); } else { await SB.from('lola_layout_biblioteca').insert({nome:nome,layout_json:payload}); } return true; }catch(e){ return false; } }
+async function libDelete(id){ if(!SB) return; try{ await SB.from('lola_layout_biblioteca').delete().eq('id',id); }catch(e){} }
+async function renderLibList(){
+  const list=document.getElementById('savedList'); if(!list) return;
+  list.innerHTML='<div style="padding:10px;color:var(--muted);font-size:13px">Carregando…</div>';
+  const rows=await libList(); list.innerHTML="";
+  if(!rows.length){ list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px">Nenhum layout salvo na biblioteca ainda. Monte um e clique em \u201CSalvar na biblioteca\u201D.</div>'; return; }
+  rows.forEach(function(R){ const L=R.layout_json||{}; const row=document.createElement("div"); row.className="saved-row";
+    const dt=R.updated_at?new Date(R.updated_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+    row.innerHTML='<span class="nm">'+(R.nome||'(sem nome)')+'<br><span class="dt">'+((L.items||[]).length)+' móveis · '+dt+'</span></span>';
+    const open=document.createElement("button"); open.className="btn primary"; open.textContent="Abrir";
+    open.onclick=function(){ loadLayout(Object.assign({},L,{floor:null})); state.floor=DEFAULT_FLOOR; state.canvasW=FLOOR_W; state.canvasH=FLOOR_H; renderCanvas(); document.getElementById('modalLoad').classList.remove("show"); };
+    const del=document.createElement("button"); del.className="btn danger"; del.textContent="🗑";
+    del.onclick=async function(){ if(confirm('Excluir "'+R.nome+'"?')){ await libDelete(R.id); renderLibList(); } };
+    row.appendChild(open); row.appendChild(del); list.appendChild(row);
+  });
+}
 /* ---------- Tipos de mobiliário ---------- */
 /* Mobiliário real do Lola — tamanhos em px na escala da planta (50 px = 1 metro) */
 const TYPES = {
@@ -316,6 +335,14 @@ function renderCanvas(){
   applyZoom();
   updateSeatCount();
 }
+function editItemNumber(it){
+  const v=prompt("Número da mesa (vazio para limpar):", it.num||"");
+  if(v===null) return;
+  it.num=(v||"").trim();
+  if($("#chkLabels")&&!$("#chkLabels").checked){ $("#chkLabels").checked=true; }
+  renderItem(it); saveWorking();
+  toast(it.num?("Mesa "+it.num):"Número removido");
+}
 function renderItem(it){
   const t=TYPES[it.type];
   let el=canvas.querySelector(`[data-id="${it.id}"]`);
@@ -324,6 +351,7 @@ function renderItem(it){
     el.innerHTML=`<span class="rot-line"></span><span class="rot-h"></span><span class="lbl"></span>`;
     canvas.appendChild(el);
     attachDrag(el,it);
+    el.addEventListener("dblclick",ev=>{ev.preventDefault();ev.stopPropagation();editItemNumber(it);});
   }
   el.style.width=it.w+"px"; el.style.height=it.h+"px";
   el.style.left=it.x+"px"; el.style.top=it.y+"px";
@@ -331,7 +359,8 @@ function renderItem(it){
   el.style.borderRadius=(t.shape==='ci')?'50%':'7px';
   el.style.boxShadow=(it.type==='cadeira'||it.type==='sofa')?'inset 0 4px 0 rgba(0,0,0,.32)':'none';
   el.style.transform=`rotate(${it.rot||0}deg)`;
-  el.querySelector(".lbl").textContent = $("#chkLabels").checked ? t.abbr : "";
+  el.querySelector(".lbl").textContent = ($("#chkLabels").checked && it.num!=null && it.num!=="") ? it.num : "";
+  el.querySelector(".lbl").style.transform = "rotate("+(-(it.rot||0))+"deg)";
   const selO=state.items.find(i=>i.id===selectedId);
   const inSel = it.id===selectedId || (selO && selO.group && it.group===selO.group);
   el.classList.toggle("sel", inSel);
@@ -658,7 +687,7 @@ function exportPNG(){
       if(t.shape==="ci"){ ctx.beginPath(); ctx.ellipse(0,0,it.w/2,it.h/2,0,0,Math.PI*2); ctx.fill(); }
       else { roundRect(ctx,-it.w/2,-it.h/2,it.w,it.h,5); ctx.fill(); }
       if(it.type==="cadeira"||it.type==="sofa"){ ctx.fillStyle="rgba(0,0,0,.3)"; ctx.fillRect(-it.w/2,-it.h/2,it.w,4); }
-      if(labels){ ctx.fillStyle="#1b1a18"; ctx.font="bold 10px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(t.abbr,0,0); }
+      if(labels && it.num!=null && it.num!==""){ ctx.rotate(-((it.rot||0)*Math.PI/180)); ctx.font="bold 18px Arial"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.lineWidth=4; ctx.strokeStyle="rgba(255,255,255,.95)"; ctx.strokeText(String(it.num),0,0); ctx.fillStyle="#1b1a18"; ctx.fillText(String(it.num),0,0); }
       ctx.restore();
     });
     try{ const a=document.createElement("a"); a.href=c.toDataURL("image/png"); a.download=((state.name||"layout-lola").replace(/[^\w\-]+/g,"_"))+".png"; a.click(); toast("Imagem exportada"); }
@@ -680,6 +709,10 @@ $("#btnPng").onclick=exportPNG;
     try{ const r=await SB.from('lola_eventos').select('layout_json').eq('id',EV_ID).single(); if(r&&r.data&&r.data.layout_json&&r.data.layout_json.items){ loadLayout(r.data.layout_json); restored=true; } }catch(e){}
     ['btnLoad','btnNew','layoutName'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
     var bs=document.getElementById('btnSave'); if(bs){ bs.textContent='\uD83D\uDCBE Salvar no evento'; bs.onclick=function(){ if(!state.name)state.name='Layout do evento'; saveToEvent(); toast('Salvo no evento \u2713'); }; }
+  } else if(LIB_MODE){
+    const bs=document.getElementById('btnSave'); if(bs){ bs.textContent='💾 Salvar na biblioteca'; bs.onclick=async function(){ const nm=(document.getElementById('layoutName').value||state.name||'').trim(); if(!nm){ toast('Dê um nome ao layout',true); document.getElementById('layoutName').focus(); return; } if(state.items.length===0){ toast('Adicione móveis antes de salvar',true); return; } state.name=nm; const ok=await libSave(nm); toast(ok?('Salvo na biblioteca: '+nm):'Erro ao salvar',!ok); }; }
+    const bl=document.getElementById('btnLoad'); if(bl){ bl.textContent='📂 Biblioteca'; bl.onclick=async function(){ await renderLibList(); document.getElementById('modalLoad').classList.add("show"); }; }
+    const ln=document.getElementById('layoutName'); if(ln) ln.placeholder='Nome do layout (ex.: Restaurante padrão)';
   } else {
     try{ const w=JSON.parse(localStorage.getItem(LS_WORKING)); if(w&&w.items){ loadLayout(w); restored=true; } }catch{}
   }
