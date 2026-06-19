@@ -6,8 +6,8 @@
 <title>Lola — Editor de Layouts do Bar</title>
 <style>
   :root{
-    --bg:#efe6d6; --panel:#fbf7f0; --panel2:#f1e9db; --line:#e2d6c2;
-    --txt:#3a322e; --muted:#8a7d6e; --accent:#aa2b2b; --accent2:#c8453f;
+    --bg:#f7f5f2; --panel:#ffffff; --panel2:#f5f2ee; --line:#ebe6df;
+    --txt:#3a322e; --muted:#9a9088; --accent:#aa2b2b; --accent2:#c8453f;
     --ok:#4c9a6a; --danger:#c2543f;
   }
   *{box-sizing:border-box}
@@ -59,7 +59,7 @@
 
   /* Canvas */
   main{flex:1;position:relative;overflow:hidden;background:
-      radial-gradient(circle at 30% 20%,#ece2d0,#ddd0ba)}
+      radial-gradient(circle at 30% 20%,#f0ede8,#e7e3dc)}
   .stage-wrap{position:absolute;inset:0;overflow:auto}
   .stage{position:relative;margin:40px auto;transform-origin:0 0}
   #canvas{position:relative;background:#ffffff;border:1px solid var(--line);box-shadow:0 8px 30px rgba(120,90,60,.22);overflow:hidden}
@@ -377,8 +377,10 @@ function renderPalette(){
     const b=document.createElement("button");
     b.className="pal-item"; b.disabled=left<=0;
     const txtcol = (t.cat==="extra") ? "#f3efe7" : "#2a2420";
-    b.innerHTML=`<span class="pal-ic" style="background:${t.color};border-radius:${t.shape==='ci'?'50%':'6px'};color:${txtcol}">${t.abbr}</span>
-      <span class="pal-meta"><span class="nm">${t.nome}</span><span class="ct">Disponíveis: <b>${left}</b> de ${total}</span></span>`;
+    const ic = t.img
+      ? `<span class="pal-ic" style="background:#fff;padding:2px"><img src="${t.img}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:4px"></span>`
+      : `<span class="pal-ic" style="background:${t.color};border-radius:${t.shape==='ci'?'50%':'6px'};color:${txtcol}">${t.abbr}</span>`;
+    b.innerHTML=`${ic}<span class="pal-meta"><span class="nm">${t.nome}</span><span class="ct">Disponíveis: <b>${left}</b> de ${total}</span></span>`;
     b.onclick=()=>addItem(key);
     ((t.cat==="extra"&&ext)?ext:pal).appendChild(b);
   }
