@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lola — Editor de Layouts do Bar</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#f7f5f2; --panel:#ffffff; --panel2:#f5f2ee; --line:#ebe6df;
@@ -11,7 +12,7 @@
     --ok:#4c9a6a; --danger:#c2543f;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);overflow:hidden}
+  html,body{margin:0;height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);overflow:hidden}
   button{font-family:inherit;cursor:pointer}
   .app{display:flex;flex-direction:column;height:100vh}
 
@@ -26,11 +27,18 @@
   .field label{font-size:12px;color:var(--muted)}
   input[type=text], select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 9px;font-size:13px;outline:none}
   input[type=text]:focus,select:focus{border-color:var(--accent)}
-  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 11px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+  .btn{background:#fff;border:1.5px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary:hover{background:var(--accent2);border-color:var(--accent2)}
   .btn:hover{border-color:var(--accent)}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
   .btn.primary:hover{background:var(--accent2)}
   .btn.ghost{background:transparent}
+  .num-ov{display:none;position:fixed;inset:0;background:rgba(30,10,10,.5);z-index:10000;align-items:center;justify-content:center}
+  .num-box{background:#fff;border-radius:16px;padding:22px;width:300px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center}
+  .num-box h3{font-family:'Playfair Display',serif;color:var(--accent);font-size:18px;margin:0 0 14px}
+  .num-box input{width:100%;padding:12px;font-size:22px;text-align:center;border:1.5px solid var(--line);border-radius:10px;font-family:inherit}
+  .num-actions{display:flex;gap:8px;justify-content:center;margin-top:16px}
   .btn.danger:hover{border-color:var(--danger);color:var(--danger)}
   .badge{background:var(--panel2);border:1px solid var(--accent);color:var(--accent2);border-radius:20px;padding:6px 13px;font-size:13px;font-weight:700;white-space:nowrap}
 
@@ -336,12 +344,19 @@ function renderCanvas(){
   updateSeatCount();
 }
 function editItemNumber(it){
-  const v=prompt("Número da mesa (vazio para limpar):", it.num||"");
-  if(v===null) return;
-  it.num=(v||"").trim();
-  if($("#chkLabels")&&!$("#chkLabels").checked){ $("#chkLabels").checked=true; }
-  renderItem(it); saveWorking();
-  toast(it.num?("Mesa "+it.num):"Número removido");
+  let ov=document.getElementById('numModal');
+  if(!ov){ ov=document.createElement('div'); ov.id='numModal'; ov.className='num-ov';
+    ov.innerHTML='<div class="num-box"><h3>Digite o número da mesa</h3><input id="numInput" type="text" inputmode="numeric" placeholder="ex.: 12"><div class="num-actions"><button class="btn ghost" id="numCancel">Cancelar</button><button class="btn primary" id="numOk">OK</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  const inp=ov.querySelector('#numInput'); inp.value=it.num||'';
+  ov.style.display='flex'; setTimeout(function(){inp.focus();inp.select();},30);
+  function close(){ ov.style.display='none'; }
+  function apply(){ it.num=(inp.value||'').trim(); if($("#chkLabels")&&!$("#chkLabels").checked)$("#chkLabels").checked=true; renderItem(it); saveWorking(); toast(it.num?("Mesa "+it.num):"Número removido"); close(); }
+  ov.querySelector('#numOk').onclick=apply;
+  ov.querySelector('#numCancel').onclick=close;
+  inp.onkeydown=function(e){ if(e.key==='Enter')apply(); else if(e.key==='Escape')close(); };
+  ov.onclick=function(e){ if(e.target===ov) close(); };
 }
 function renderItem(it){
   const t=TYPES[it.type];
