@@ -616,6 +616,19 @@ function dupSelection(){
 const TABLE_SEAT={quadInt:"cadeira", madeira:"cadeira", cinzaCup:"cadeira", redSchwe:"cadeira", redVaz:"cadeira", retGrande:"cadeira", retBaixa:"cadeira", bistroFix:"banqueta", bistroDob:"banqueta"};
 const SEATS={cadeira:1, banqueta:1, pufe:1};
 function seatsOf(tbl){ if(!tbl||!tbl.group) return []; const st=TABLE_SEAT[tbl.type]; return state.items.filter(i=>i.group===tbl.group && i.type===st); }
+/* cadeiras sempre ATRÁS da mesa (assentos desenham antes do tampo) */
+function normalizeOrder(){
+  const arr=[], done=new Set();
+  state.items.forEach(it=>{
+    if(done.has(it.id)) return;
+    if(it.group){
+      const g=state.items.filter(x=>x.group===it.group);
+      g.filter(x=>SEATS[x.type]).forEach(x=>{ arr.push(x); done.add(x.id); });
+      g.filter(x=>!SEATS[x.type]).forEach(x=>{ arr.push(x); done.add(x.id); });
+    } else { arr.push(it); done.add(it.id); }
+  });
+  state.items=arr;
+}
 function setSeats(tbl,n){
   const st=TABLE_SEAT[tbl.type]; if(!st) return;
   n=Math.max(0,Math.min(12,n));
@@ -646,6 +659,7 @@ function setSeats(tbl,n){
     const rot=(((ang+90+(tbl.rot||0))%360)+360)%360;
     state.items.push({id:uid++, type:st, x:Math.round(px-t.w/2), y:Math.round(py-t.h/2), w:t.w, h:t.h, rot:rot, group:tbl.group});
   }
+  normalizeOrder();
   renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
 }
 
@@ -731,7 +745,7 @@ selBar.addEventListener("click",e=>{
   if(act==="rotR") rotateSelection(15);
   if(act==="dup") dupSelection();
   if(act==="del") delSelection();
-  if(act==="front"){ pushHistory(); const g=unionItems(); const ids=new Set(g.map(x=>x.id)); state.items=state.items.filter(i=>!ids.has(i.id)); g.forEach(x=>state.items.push(x)); renderCanvas(); saveWorking(); }
+  if(act==="front"){ pushHistory(); const g=unionItems(); const ids=new Set(g.map(x=>x.id)); state.items=state.items.filter(i=>!ids.has(i.id)); g.forEach(x=>state.items.push(x)); normalizeOrder(); renderCanvas(); saveWorking(); }
 });
 
 /* ---------- Drag + rotação por handle ---------- */
@@ -876,7 +890,7 @@ function renderSavedList(){
 function loadLayout(L){
   state={name:L.name||"",floor:L.floor||null,canvasW:L.canvasW||1000,canvasH:L.canvasH||650,
          inventory:{...DEFAULT_INV,...(L.inventory||{})},items:(L.items||[]).filter(i=>TYPES[i.type]).map(i=>({...i}))};
-  migrateFloor();
+  migrateFloor(); normalizeOrder();
   uid=Math.max(0,...state.items.map(i=>i.id||0))+1;
   groupSeq=Math.max(0,...state.items.map(i=>i.group||0))+1;
   selectedId=null; selSet.clear(); $("#layoutName").value=state.name;
