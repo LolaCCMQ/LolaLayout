@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lola — Layout de mesas</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css">
+<style>
+  :root{
+    --creme:#FBF7F1; --card:#FFFFFF; --borda:#ECE3D9; --fio:#EFE6DC;
+    --vinho:#A82A2A; --vinho2:#7E1E1F; --creme2:#F7EFE6;
+    --txt:#2A1A17; --txt2:#5A463E; --apagado:#8A7A72; --rotulo:#B79A8E;
+    --ok:#2C7A4B; --okbg:#E6F3EA; --danger:#B5302E; --dangerbg:#FBEAE7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:'Hanken Grotesk',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--creme);color:var(--txt);overflow:hidden}
+  button{font-family:inherit;cursor:pointer}
+  .app{display:flex;flex-direction:column;height:100vh}
+
+  header{display:flex;align-items:center;gap:8px;padding:10px 16px;background:transparent;border-bottom:1px solid var(--fio);flex-wrap:wrap}
+  .ttl{margin-right:6px;min-width:0}
+  .ttl .t1{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:19px;color:var(--vinho);line-height:1.1;white-space:nowrap}
+  .ttl .t2{font-size:11.5px;font-weight:600;color:var(--apagado)}
+  .spacer{flex:1}
+  input[type=text]{background:var(--card);border:1px solid var(--borda);color:var(--txt);border-radius:13px;padding:0 12px;font-size:13.5px;outline:none;height:44px}
+  input[type=text]::placeholder{color:var(--rotulo)}
+  input[type=text]:focus{border-color:var(--vinho)}
+  .btn{background:var(--card);border:1px solid var(--borda);color:var(--txt2);border-radius:13px;min-height:44px;padding:0 14px;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:7px;transition:border-color .15s,background .15s}
+  .btn i{font-size:18px;color:var(--vinho)}
+  .btn:hover{border-color:var(--vinho)}
+  .btn.icon{width:44px;padding:0;justify-content:center}
+  .btn.primary{background:var(--vinho);border-color:var(--vinho);color:#fff;font-weight:700}
+  .btn.primary i{color:#fff}
+  .btn.primary:hover{background:var(--vinho2);border-color:var(--vinho2)}
+  .btn.ghost{background:transparent;border-color:transparent}
+  .btn.danger i{color:var(--danger)}
+  .btn.danger:hover{border-color:var(--danger);background:var(--dangerbg)}
+  .badge{background:var(--creme2);border:none;color:var(--vinho2);border-radius:10px;padding:0 13px;height:44px;display:inline-flex;align-items:center;font-size:13px;font-weight:700;white-space:nowrap}
+
+  .body{flex:1;display:flex;min-height:0}
+  aside{width:252px;background:var(--card);border-right:1px solid var(--fio);display:flex;flex-direction:column;overflow-y:auto;flex:none}
+  .side-h{padding:16px 16px 6px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--rotulo);font-weight:600}
+  .palette{display:flex;flex-direction:column}
+  .pal-item{display:flex;align-items:center;gap:10px;background:transparent;border:none;border-bottom:1px solid var(--fio);padding:8px 16px;text-align:left;width:100%}
+  .pal-item:hover{background:var(--creme)}
+  .pal-item:disabled{opacity:.35;cursor:not-allowed}
+  .pal-ic{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center}
+  .pal-ic svg{max-width:34px;max-height:34px;display:block}
+  .pal-meta{flex:1;min-width:0}
+  .pal-meta .nm{display:block;font-size:12.5px;font-weight:600;line-height:1.25;color:var(--txt)}
+  .pal-meta .ct{display:block;font-size:11px;color:var(--apagado);margin-top:1px}
+  .pal-meta .ct b{color:var(--vinho)}
+
+  .inv-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 16px;font-size:12px;border-bottom:1px solid var(--fio)}
+  .inv-name{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--txt2)}
+  .inv-name .dot{width:12px;height:12px;flex:none;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+  .inv-row input{width:52px;text-align:center;padding:0;height:36px;border-radius:10px}
+
+  main{flex:1;position:relative;overflow:hidden;background:var(--creme)}
+  .stage-wrap{position:absolute;inset:0;overflow:auto}
+  .stage{position:relative;margin:40px auto;transform-origin:0 0}
+  #canvas{position:relative;background:#FBF7F1;border:1px solid var(--borda);border-radius:4px;overflow:hidden}
+  #floorImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none}
+  .grid-on #canvas{background-image:
+     linear-gradient(rgba(168,42,42,.05) 1px,transparent 1px),
+     linear-gradient(90deg,rgba(168,42,42,.05) 1px,transparent 1px);
+     background-size:25px 25px}
+  .empty-hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--apagado);font-size:14px;text-align:center;padding:30px;pointer-events:none}
+
+  .item{position:absolute;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none}
+  .item .art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .item .lbl{position:relative;pointer-events:none;font-family:'Fraunces',Georgia,serif;font-size:12.5px;font-weight:600;color:#2A1A17;background:#fff;border:1px solid rgba(42,26,23,.35);border-radius:999px;min-width:20px;height:20px;padding:0 4px;display:none;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(42,26,23,.25)}
+  .item.sel{outline:2px solid var(--vinho);outline-offset:2px;z-index:50}
+  .item .rot-h{position:absolute;top:-22px;left:50%;width:14px;height:14px;margin-left:-7px;background:var(--vinho);border:2px solid #fff;box-shadow:0 0 0 1px var(--vinho);border-radius:50%;cursor:grab;display:none}
+  .item.primary .rot-h{display:block}
+  .item .rot-line{position:absolute;top:-12px;left:50%;width:1px;height:12px;background:var(--vinho);display:none}
+  .item.primary .rot-line{display:block}
+
+  .lupa{margin-left:auto;flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--apagado)}
+  .lupa:hover{color:var(--vinho);background:var(--creme)}
+  .lupa i{font-size:17px}
+  #fotoPrev{position:fixed;z-index:400;pointer-events:none;display:none;background:#fff;border:1px solid var(--borda);border-radius:13px;padding:6px;width:240px}
+  #fotoPrev img{display:block;width:100%;border-radius:9px;min-height:60px;background:var(--creme)}
+  #fotoPrev .fp-nm{font-size:11px;font-weight:600;color:var(--txt2);padding:5px 2px 1px;text-align:center}
+  .foto-ov{position:fixed;inset:0;background:rgba(42,26,23,.55);z-index:10001;display:none;align-items:center;justify-content:center;padding:20px}
+  .foto-ov.show{display:flex}
+  .foto-box{background:#fff;border-radius:16px;padding:14px;max-width:92vw;max-height:86vh;text-align:center;border:1px solid var(--borda)}
+  .foto-box img{max-width:100%;max-height:62vh;border-radius:10px}
+  .foto-box h3{font-family:'Fraunces',Georgia,serif;font-weight:600;color:var(--vinho);font-size:16px;margin:8px 0 10px}
+
+  .sel-bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:none;gap:6px;align-items:center;background:var(--card);border:1px solid var(--borda);border-radius:13px;padding:6px;z-index:200}
+  .sel-bar.show{display:flex}
+  .sel-bar .btn{min-height:38px}
+  .sel-bar .btn.icon{width:38px}
+  .seat-ctl{display:flex;gap:6px;align-items:center}
+  .seat-n{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:700;color:var(--txt2);padding:0 2px}
+  .seat-n i{font-size:17px;color:var(--vinho)}
+  .seat-ctl .sep{width:1px;height:24px;background:var(--fio);margin:0 3px}
+
+  .zoom-bar{position:absolute;bottom:14px;right:14px;display:flex;gap:4px;background:var(--card);border:1px solid var(--borda);border-radius:13px;padding:4px;z-index:200}
+  .zoom-bar .btn{border:none;min-height:38px}
+  .zoom-bar .btn.icon{width:38px}
+  .toggle-bar{position:absolute;bottom:14px;left:14px;display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--borda);border-radius:13px;padding:9px 12px;z-index:200;font-size:12px;color:var(--txt2)}
+  .toggle-bar label{display:flex;align-items:center;gap:5px;cursor:pointer}
+  .toggle-bar input{accent-color:var(--vinho)}
+
+  .hint-keys{position:absolute;top:12px;left:14px;font-size:11px;color:var(--apagado);background:rgba(255,255,255,.9);border:1px solid var(--fio);padding:6px 9px;border-radius:10px;z-index:150;line-height:1.6}
+  kbd{background:var(--creme);border:1px solid var(--borda);border-radius:4px;padding:1px 5px;font-size:10px}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(42,26,23,.5);display:none;place-items:center;z-index:500}
+  .modal-bg.show{display:grid}
+  .modal{background:var(--card);border:1px solid var(--borda);border-radius:16px;padding:20px;width:420px;max-width:92vw}
+  .modal h3{margin:0 0 4px;font-family:'Fraunces',Georgia,serif;font-weight:600;color:var(--vinho)}
+  .modal p{color:var(--apagado);font-size:13px;margin:0 0 14px}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .saved-list{max-height:300px;overflow:auto;display:flex;flex-direction:column}
+  .saved-row{display:flex;align-items:center;gap:8px;background:transparent;border-bottom:1px solid var(--fio);padding:10px 2px}
+  .saved-row .nm{flex:1;font-size:13.5px;font-weight:600}
+  .saved-row .dt{font-size:11px;color:var(--apagado);font-weight:400}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:11px 18px;border-radius:13px;font-size:13px;z-index:900;opacity:0;transition:opacity .25s, transform .25s;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .toast.err{background:var(--danger)}
+
+  .num-ov{display:none;position:fixed;inset:0;background:rgba(42,26,23,.5);z-index:10000;align-items:center;justify-content:center}
+  .num-box{background:#fff;border-radius:16px;padding:22px;width:300px;max-width:90%;text-align:center;border:1px solid var(--borda)}
+  .num-box h3{font-family:'Fraunces',Georgia,serif;font-weight:600;color:var(--vinho);font-size:18px;margin:0 0 14px}
+  .num-box input{width:100%;height:52px;font-size:22px;text-align:center;border:1px solid var(--borda);border-radius:13px;font-family:inherit}
+  .num-actions{display:flex;gap:8px;justify-content:center;margin-top:16px}
+
+  @media(max-width:899px){
+    html,body{overflow:auto;overflow-x:hidden}
+    .app{height:auto;min-height:100vh}
+    header{position:sticky;top:0;background:var(--creme);z-index:300}
+    .ttl{width:100%}
+    #layoutName{flex:1;min-width:0;width:auto}
+    .btn span.tx{display:none}
+    .btn{padding:0 12px}
+    .body{flex-direction:column}
+    main{flex:none;height:62vh}
+    aside{width:100%;border-right:none;border-top:1px solid var(--fio);order:2}
+    .palette{flex-direction:row;overflow-x:auto;padding:4px 8px 12px;gap:8px}
+    .pal-item{flex:none;width:118px;flex-direction:column;text-align:center;gap:6px;border:1px solid var(--borda);border-radius:13px;padding:10px 6px;margin-left:8px}
+    .pal-meta .nm{font-size:11px}
+    .pal-item{position:relative}
+    .lupa{position:absolute;top:2px;right:2px;width:30px;height:30px;margin:0}
+    .hint-keys{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="ttl">
+      <div class="t1">Layout de mesas</div>
+      <div class="t2">Planta CCMQ · escala 1:50</div>
+    </div>
+    <input id="layoutName" type="text" placeholder="Nome do layout (ex.: Aniversário 50p)" style="width:210px">
+    <button class="btn primary" id="btnSave"><i class="ph-duotone ph-floppy-disk"></i><span class="tx">Salvar</span></button>
+    <button class="btn" id="btnLoad"><i class="ph-duotone ph-folder-open"></i><span class="tx">Layouts</span></button>
+    <button class="btn icon" id="btnNew" title="Novo layout"><i class="ph-duotone ph-plus"></i></button>
+    <button class="btn icon" id="btnUndo" title="Desfazer (Ctrl+Z)"><i class="ph-duotone ph-arrow-counter-clockwise"></i></button>
+
+    <div class="spacer"></div>
+    <span class="badge" id="seatCount">Lugares: 0</span>
+
+    <button class="btn" id="btnFloor" title="Trocar a planta baixa"><i class="ph-duotone ph-image"></i><span class="tx">Planta baixa</span></button>
+    <button class="btn" id="btnPng" title="Exportar imagem"><i class="ph-duotone ph-download-simple"></i><span class="tx">Imagem</span></button>
+    <input type="file" id="fileFloor" accept="image/*" hidden>
+  </header>
+
+  <div class="body">
+    <aside>
+      <div class="side-h">Mobiliário</div>
+      <div class="palette" id="palette"></div>
+
+      <div class="side-h">Extras</div>
+      <div class="palette" id="extras"></div>
+
+      <div class="side-h">Estoque (quantidade total)</div>
+      <div id="inventory"></div>
+
+      <div class="side-h">Dica</div>
+      <div style="padding:0 16px 18px;font-size:12px;color:var(--apagado);line-height:1.6">
+        Toque num móvel para adicioná-lo; passe o mouse (ou toque na lupa) para ver a foto real. Com uma mesa selecionada, use − e + para ajustar as cadeiras (elas encaixam meio corpo sob o tampo). Ligue "Vários" para selecionar mesas já inseridas e movê-las juntas. Toque duas vezes numa mesa para numerá-la.
+      </div>
+    </aside>
+
+    <main id="main">
+      <div class="hint-keys">
+        <kbd>Del</kbd> excluir &nbsp; <kbd>R</kbd> girar &nbsp; <kbd>D</kbd> duplicar &nbsp; <kbd>setas</kbd> mover
+      </div>
+
+      <div class="stage-wrap" id="stageWrap">
+        <div class="stage" id="stage">
+          <div id="canvas">
+            <img id="floorImg" alt="" hidden>
+            <div class="empty-hint" id="emptyHint">
+              Carregue a planta baixa em <b>Planta baixa</b><br>e comece a posicionar o mobiliário.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sel-bar" id="selBar">
+        <span class="seat-ctl" id="seatCtl" style="display:none">
+          <button class="btn icon" data-act="seatMinus" title="Menos cadeiras"><i class="ph-duotone ph-minus"></i></button>
+          <span class="seat-n"><i class="ph-duotone ph-armchair"></i><b id="seatN">0</b></span>
+          <button class="btn icon" data-act="seatPlus" title="Mais cadeiras"><i class="ph-duotone ph-plus"></i></button>
+          <span class="sep"></span>
+        </span>
+        <button class="btn icon" data-act="rotL" title="Girar -15°"><i class="ph-duotone ph-arrow-arc-left"></i></button>
+        <button class="btn icon" data-act="rotR" title="Girar +15°"><i class="ph-duotone ph-arrow-arc-right"></i></button>
+        <button class="btn icon" data-act="dup" title="Duplicar"><i class="ph-duotone ph-copy"></i></button>
+        <button class="btn icon" data-act="front" title="Trazer à frente"><i class="ph-duotone ph-stack"></i></button>
+        <button class="btn icon danger" data-act="del" title="Excluir"><i class="ph-duotone ph-trash"></i></button>
+      </div>
+
+      <div class="toggle-bar">
+        <label><input type="checkbox" id="chkGrid" checked> Grade</label>
+        <label><input type="checkbox" id="chkSnap" checked> Encaixar</label>
+        <label><input type="checkbox" id="chkLabels" checked> Números</label>
+        <label title="Tocar nas mesas soma à seleção; arraste para mover tudo junto"><input type="checkbox" id="chkMulti"> Vários</label>
+      </div>
+
+      <div class="zoom-bar">
+        <button class="btn icon ghost" id="zoomOut"><i class="ph-duotone ph-minus"></i></button>
+        <button class="btn ghost" id="zoomReset" style="min-width:56px">100%</button>
+        <button class="btn icon ghost" id="zoomIn"><i class="ph-duotone ph-plus"></i></button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Load layouts modal -->
+<div class="modal-bg" id="modalLoad">
+  <div class="modal">
+    <h3>Layouts salvos</h3>
+    <p>Toque para abrir.</p>
+    <div class="saved-list" id="savedList"></div>
+    <div class="row"><button class="btn" id="closeLoad">Fechar</button></div>
+  </div>
+</div>
+
+<div id="fotoPrev"><img alt=""><div class="fp-nm"></div></div>
+<div class="foto-ov" id="fotoOv"><div class="foto-box"><img id="fotoOvImg" alt=""><h3 id="fotoOvNm"></h3><button class="btn" id="fotoOvClose">Fechar</button></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const EV_ID=new URLSearchParams(location.search).get('evento');
+const LIB_MODE=new URLSearchParams(location.search).get('lib')==='1';
+let SB=null;
+try{ if((EV_ID||LIB_MODE)&&window.supabase){ SB=window.supabase.createClient('https://mvjbsdpfjhywhaonvpfl.supabase.co','sb_publishable_VMJzYe1AwL9zEoFs-ljUIw_OOkDpqhy'); } }catch(e){}
+let _evSaveT=null;
+function layoutToDataURL(cb){
+  try{
+    const scale=1.5, cw=state.canvasW, ch=state.canvasH;
+    const c=document.createElement("canvas"); c.width=cw*scale; c.height=ch*scale;
+    const ctx=c.getContext("2d"); ctx.scale(scale,scale);
+    ctx.fillStyle="#FBF7F1"; ctx.fillRect(0,0,cw,ch);
+    const labels=document.getElementById("chkLabels")?document.getElementById("chkLabels").checked:true;
+    const draw=function(){
+      state.items.forEach(function(it){ drawItemCanvas(ctx,it,labels); });
+      let url=""; try{ url=c.toDataURL("image/png"); }catch(e){ url=""; } cb(url);
+    };
+    if(state.floor){ const im=new Image(); im.onload=function(){ const ir=im.width/im.height, cr=cw/ch; let dw,dh,dx,dy; if(ir>cr){dw=cw;dh=cw/ir;dx=0;dy=(ch-dh)/2;}else{dh=ch;dw=ch*ir;dy=0;dx=(cw-dw)/2;} ctx.drawImage(im,dx,dy,dw,dh); draw(); }; im.onerror=draw; im.src=state.floor; }
+    else draw();
+  }catch(e){ cb(""); }
+}
+function saveToEvent(){ if(!SB||!EV_ID) return; clearTimeout(_evSaveT); _evSaveT=setTimeout(function(){ const s=snapshot(); const payload={name:s.name,canvasW:s.canvasW,canvasH:s.canvasH,inventory:s.inventory,items:s.items}; layoutToDataURL(async function(png){ try{ const upd={layout_json:payload}; if(png) upd.layout_png=png; await SB.from('lola_eventos').update(upd).eq('id',EV_ID); const b=document.getElementById('btnSave'); if(b)b.textContent='Salvo no evento ✓'; }catch(e){} }); },800); }
+async function libList(){ if(!SB) return []; try{ const r=await SB.from('lola_layout_biblioteca').select('id,nome,layout_json,updated_at').order('updated_at',{ascending:false}); return r.error?[]:(r.data||[]); }catch(e){ return []; } }
+async function libSave(nome){ if(!SB) return false; const s=snapshot(); const payload={name:nome,canvasW:s.canvasW,canvasH:s.canvasH,inventory:s.inventory,items:s.items}; try{ const ex=await SB.from('lola_layout_biblioteca').select('id').eq('nome',nome).maybeSingle(); if(ex&&ex.data){ await SB.from('lola_layout_biblioteca').update({layout_json:payload,updated_at:new Date().toISOString()}).eq('id',ex.data.id); } else { await SB.from('lola_layout_biblioteca').insert({nome:nome,layout_json:payload}); } return true; }catch(e){ return false; } }
+async function libDelete(id){ if(!SB) return; try{ await SB.from('lola_layout_biblioteca').delete().eq('id',id); }catch(e){} }
+async function renderLibList(){
+  const list=document.getElementById('savedList'); if(!list) return;
+  list.innerHTML='<div style="padding:10px;color:var(--apagado);font-size:13px">Carregando…</div>';
+  const rows=await libList(); list.innerHTML="";
+  if(!rows.length){ list.innerHTML='<div style="color:var(--apagado);font-size:13px;padding:8px">Nenhum layout salvo na biblioteca ainda. Monte um e toque em “Salvar na biblioteca”.</div>'; return; }
+  rows.forEach(function(R){ const L=R.layout_json||{}; const row=document.createElement("div"); row.className="saved-row";
+    const dt=R.updated_at?new Date(R.updated_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+    row.innerHTML='<span class="nm">'+(R.nome||'(sem nome)')+'<br><span class="dt">'+((L.items||[]).length)+' móveis · '+dt+'</span></span>';
+    const open=document.createElement("button"); open.className="btn primary"; open.textContent="Abrir";
+    open.onclick=function(){ loadLayout(Object.assign({},L,{floor:null})); state.floor=DEFAULT_FLOOR; state.canvasW=FLOOR_W; state.canvasH=FLOOR_H; renderCanvas(); document.getElementById('modalLoad').classList.remove("show"); };
+    const del=document.createElement("button"); del.className="btn icon danger"; del.innerHTML='<i class="ph-duotone ph-trash"></i>';
+    del.onclick=async function(){ if(confirm('Excluir "'+R.nome+'"?')){ await libDelete(R.id); renderLibList(); } };
+    row.appendChild(open); row.appendChild(del); list.appendChild(row);
+  });
+}
+/* ---------- Tipos de mobiliário (materiais reais do Lola) ---------- */
+/* tamanhos em px na escala da planta (50 px = 1 metro) */
+const TYPES = {
+  quadInt:   {nome:"Quadrada interna 70×70",      w:35,  h:35, color:"#3B3733", edge:"#23201E", mat:"metal", shape:"sq", abbr:"QI"},
+  madeira:   {nome:"Quadrada madeira 67×68",      w:34,  h:34, color:"#A5713F", edge:"#7C5228", grain:"#BC8C57", mat:"wood", shape:"sq", abbr:"MD"},
+  cinzaCup:  {nome:"Quadrada cinza cúpula 70×70", w:35,  h:35, color:"#9EA3A6", edge:"#71777A", mat:"metal", shape:"sq", abbr:"CC"},
+  bistroFix: {nome:"Bistrô fixa 60×60",           w:30,  h:30, color:"#3B3733", edge:"#23201E", mat:"metal", shape:"ci", abbr:"BF"},
+  bistroDob: {nome:"Bistrô abre/fecha 54×55",     w:27,  h:28, color:"#B08050", edge:"#84613A", grain:"#C2996B", mat:"wood", shape:"ci", abbr:"BD"},
+  redSchwe:  {nome:"Redonda Schweppes 78",        w:39,  h:39, color:"#56718A", edge:"#3D5468", grain:"#7690A8", mat:"wood", shape:"ci", abbr:"RS"},
+  redVaz:    {nome:"Redonda vazada cúpula 85",    w:43,  h:43, color:"#A5713F", edge:"#7C5228", grain:"#BC8C57", mat:"wood", shape:"ci", abbr:"RV"},
+  retGrande: {nome:"Retangular grande 2,3m (m.60)",w:115, h:36, color:"#8F6B42", edge:"#6B4E2E", grain:"#A5804F", mat:"wood", shape:"sq", abbr:"60"},
+  retBaixa:  {nome:"Retangular baixa 1,2m (m.44)", w:60,  h:36, color:"#9C7448", edge:"#75562F", grain:"#B08653", mat:"wood", shape:"sq", abbr:"44"},
+  cadeira:   {nome:"Cadeira",                     w:22,  h:22, color:"#3B3733", edge:"#1E1B1A", mat:"chair", shape:"sq", abbr:"C"},
+  banqueta:  {nome:"Banqueta",                    w:20,  h:20, color:"#3B3733", edge:"#1E1B1A", mat:"stool", shape:"ci", abbr:"B"},
+  pufe:      {nome:"Pufe",                        w:24,  h:24, color:"#6F5B4E", edge:"#52423A", mat:"pufe", shape:"ci", abbr:"P"},
+  telao:     {nome:"Telão / tela",                w:120, h:20, color:"#33312E", edge:"#1E1C1A", mat:"screen", shape:"sq", abbr:"TELÃO", cat:"extra"},
+  projetor:  {nome:"Projetor",                    w:20,  h:20, color:"#5B5754", edge:"#3E3B39", mat:"proj",   shape:"sq", abbr:"PJ",    cat:"extra"},
+  palco:     {nome:"Mini palco 2×1m",             w:100, h:50, color:"#8A6D44", edge:"#66502F", grain:"#9E8052", mat:"wood", shape:"sq", abbr:"PALCO", cat:"extra"},
+  floreira:  {nome:"Floreira redonda 60cm",       w:30,  h:30, color:"#5F7D4F", edge:"#42603A", mat:"plant", shape:"ci", abbr:"FL",    cat:"extra"},
+  bar200:    {nome:"Bar 2,00×0,70 m",             w:100, h:35, color:"#97A0A0", edge:"#6E7678", grain:"#B26B35", mat:"bar", shape:"sq", abbr:"BAR",   cat:"extra"},
+  bar120:    {nome:"Bar 1,20×0,60 m",             w:60,  h:30, color:"#97A0A0", edge:"#6E7678", grain:"#B26B35", mat:"bar", shape:"sq", abbr:"BAR",   cat:"extra"},
+};
+/* estoque real do Lola (ajustável no app) */
+const DEFAULT_INV = {quadInt:20, madeira:4, cinzaCup:7, bistroFix:2, bistroDob:10, redSchwe:6, redVaz:3, retGrande:1, retBaixa:1, cadeira:102, banqueta:16, pufe:14, telao:1, projetor:1, palco:1, floreira:8, bar200:1, bar120:1};
+const SCALE_FURN=1.12; /* mesas um pouco maiores p/ visibilidade */
+Object.values(TYPES).forEach(t=>{ t.w=Math.round(t.w*SCALE_FURN); t.h=Math.round(t.h*SCALE_FURN); });
+
+/* ---------- Planta baixa padrão (vetorial, arquivo separado no repo) ---------- */
+const FLOOR_W=723, FLOOR_H=1040;
+const DEFAULT_FLOOR='planta-ccmq.svg';
+const OLD_FLOOR_SIG='iVBORw0KGgoAAAANSUhEUgAAAtMAAAQQ';
+
+const LS_LAYOUTS = "lola_layouts_v1";
+const LS_WORKING = "lola_working_v3";
+
+/* ---------- Estado ---------- */
+let state = {
+  name: "",
+  floor: null,           // dataURL ou caminho da planta
+  canvasW: FLOOR_W,
+  canvasH: FLOOR_H,
+  inventory: {...DEFAULT_INV},
+  items: [],             // {id,type,x,y,w,h,rot,group,num}
+};
+let selectedId = null;
+let selSet = new Set();
+let zoom = 1;
+let uid = 1;
+let groupSeq = 1;
+
+/* ---------- Elementos ---------- */
+const $ = s => document.querySelector(s);
+const canvas = $("#canvas");
+const stage = $("#stage");
+const stageWrap = $("#stageWrap");
+const floorImg = $("#floorImg");
+const emptyHint = $("#emptyHint");
+const selBar = $("#selBar");
+const main = $("#main");
+
+/* ---------- Util ---------- */
+function toast(msg, err){
+  const t=$("#toast"); t.textContent=msg; t.className="toast show"+(err?" err":"");
+  setTimeout(()=>t.className="toast",1800);
+}
+function usedCount(type){ return state.items.filter(i=>i.type===type).length; }
+function migrateFloor(){ if(state.floor && typeof state.floor==="string" && state.floor.indexOf(OLD_FLOOR_SIG)>-1){ state.floor=DEFAULT_FLOOR; state.canvasW=FLOOR_W; state.canvasH=FLOOR_H; } }
+
+/* ---------- Desenho do mobiliário (vista de cima, com material) ---------- */
+function artSVG(type,w,h){
+  const t=TYPES[type]; if(!t) return "";
+  const ci=t.shape==="ci";
+  const cx=w/2, cy=h/2, rx=w/2-1, ry=h/2-1;
+  let inner="";
+  if(t.mat==="chair"){
+    const bh=Math.max(4,Math.round(h*.22));
+    inner=`<rect x="2" y="${Math.round(h*.13)}" width="${w-4}" height="${h-Math.round(h*.13)-2}" rx="5" fill="${t.color}" stroke="${t.edge}" stroke-width="1.2"/>`+
+          `<rect x="1" y="0" width="${w-2}" height="${bh}" rx="${Math.round(bh/2)}" fill="${t.edge}"/>`;
+  } else {
+    if(ci) inner+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${t.color}" stroke="${t.edge||'rgba(0,0,0,.25)'}" stroke-width="1.3"/>`;
+    else   inner+=`<rect x="1" y="1" width="${w-2}" height="${h-2}" rx="3" fill="${t.color}" stroke="${t.edge||'rgba(0,0,0,.25)'}" stroke-width="1.3"/>`;
+    if(t.mat==="wood"){
+      if(ci) inner+=`<ellipse cx="${cx}" cy="${cy}" rx="${(rx*.62).toFixed(1)}" ry="${(ry*.62).toFixed(1)}" fill="none" stroke="${t.grain}" stroke-width="1"/><ellipse cx="${cx}" cy="${cy}" rx="${(rx*.3).toFixed(1)}" ry="${(ry*.3).toFixed(1)}" fill="none" stroke="${t.grain}" stroke-width="1"/>`;
+      else inner+=`<path d="M4 ${(h*.28).toFixed(1)} C ${(w*.3).toFixed(1)} ${(h*.23).toFixed(1)}, ${(w*.6).toFixed(1)} ${(h*.33).toFixed(1)}, ${w-4} ${(h*.28).toFixed(1)} M4 ${(h*.55).toFixed(1)} C ${(w*.35).toFixed(1)} ${(h*.5).toFixed(1)}, ${(w*.65).toFixed(1)} ${(h*.6).toFixed(1)}, ${w-4} ${(h*.55).toFixed(1)} M4 ${(h*.8).toFixed(1)} C ${(w*.3).toFixed(1)} ${(h*.76).toFixed(1)}, ${(w*.6).toFixed(1)} ${(h*.84).toFixed(1)}, ${w-4} ${(h*.8).toFixed(1)}" stroke="${t.grain}" stroke-width="1" fill="none"/>`;
+    }
+    if(t.mat==="metal"){
+      if(ci) inner+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx-3}" ry="${ry-3}" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>`;
+      else   inner+=`<rect x="4" y="4" width="${w-8}" height="${h-8}" rx="2" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>`;
+    }
+    if(t.mat==="stool") inner+=`<ellipse cx="${cx}" cy="${cy}" rx="${(rx*.5).toFixed(1)}" ry="${(ry*.5).toFixed(1)}" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.2"/>`;
+    if(t.mat==="pufe")  inner+=`<ellipse cx="${cx}" cy="${cy}" rx="${(rx*.62).toFixed(1)}" ry="${(ry*.62).toFixed(1)}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="3 3"/>`;
+    if(t.mat==="plant"){
+      for(let a=0;a<3;a++) inner+=`<g transform="rotate(${a*120} ${cx} ${cy})"><ellipse cx="${cx}" cy="${(cy-ry*.45).toFixed(1)}" rx="${(rx*.28).toFixed(1)}" ry="${(ry*.4).toFixed(1)}" fill="#7A996A"/></g>`;
+      inner+=`<circle cx="${cx}" cy="${cy}" r="${(rx*.16).toFixed(1)}" fill="#42603A"/>`;
+    }
+    if(t.mat==="bar")    inner+=`<rect x="1" y="${h-6}" width="${w-2}" height="5" rx="2" fill="${t.grain}"/>`;
+    if(t.mat==="screen") inner+=`<rect x="3" y="${cy-1}" width="${w-6}" height="2" fill="rgba(255,255,255,.35)"/>`;
+    if(t.mat==="proj")   inner+=`<circle cx="${cx}" cy="${cy}" r="${(Math.min(w,h)*.22).toFixed(1)}" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.5"/>`;
+  }
+  return `<svg class="art" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+}
+/* mesmo desenho no canvas (exportar imagem / miniatura do evento) */
+function drawItemCanvas(ctx,it,labels){
+  const t=TYPES[it.type]; if(!t) return;
+  ctx.save(); ctx.translate(it.x+it.w/2,it.y+it.h/2); ctx.rotate((it.rot||0)*Math.PI/180);
+  const w=it.w,h=it.h;
+  ctx.fillStyle=t.color; ctx.strokeStyle=t.edge||"rgba(0,0,0,.3)"; ctx.lineWidth=1.2;
+  if(t.mat==="chair"){
+    roundRect(ctx,-w/2+2,-h/2+h*.13,w-4,h*.87-2,5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=t.edge; roundRect(ctx,-w/2+1,-h/2,w-2,Math.max(4,h*.22),Math.max(2,h*.11)); ctx.fill();
+  } else if(t.shape==="ci"){
+    ctx.beginPath(); ctx.ellipse(0,0,w/2-1,h/2-1,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle=t.grain||"rgba(255,255,255,.28)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(0,0,(w/2)*.6,(h/2)*.6,0,0,Math.PI*2); ctx.stroke();
+  } else {
+    roundRect(ctx,-w/2+1,-h/2+1,w-2,h-2,3); ctx.fill(); ctx.stroke();
+    if(t.grain && t.mat==="wood"){ ctx.strokeStyle=t.grain; ctx.lineWidth=1; ctx.beginPath();
+      ctx.moveTo(-w/2+4,-h*0.22); ctx.bezierCurveTo(-w*0.2,-h*0.27,w*0.1,-h*0.17,w/2-4,-h*0.22);
+      ctx.moveTo(-w/2+4,h*0.05); ctx.bezierCurveTo(-w*0.15,0,w*0.15,h*0.1,w/2-4,h*0.05);
+      ctx.moveTo(-w/2+4,h*0.3); ctx.bezierCurveTo(-w*0.2,h*0.26,w*0.1,h*0.34,w/2-4,h*0.3); ctx.stroke(); }
+    if(t.mat==="bar"){ ctx.fillStyle=t.grain; ctx.fillRect(-w/2+1,h/2-6,w-2,5); }
+    if(t.mat==="metal"){ ctx.strokeStyle="rgba(255,255,255,.16)"; ctx.lineWidth=1; ctx.strokeRect(-w/2+4,-h/2+4,w-8,h-8); }
+  }
+  if(labels && it.num!=null && it.num!==""){
+    ctx.rotate(-((it.rot||0)*Math.PI/180));
+    const s=String(it.num); ctx.font="600 13px Georgia, serif";
+    const r=Math.max(11, ctx.measureText(s).width/2+6);
+    ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.fillStyle="#FFFFFF"; ctx.fill();
+    ctx.lineWidth=1.2; ctx.strokeStyle="rgba(42,26,23,.45)"; ctx.stroke();
+    ctx.fillStyle="#2A1A17"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(s,0,0.5);
+  }
+  ctx.restore();
+}
+
+/* ---------- Render paleta + estoque ---------- */
+function renderPalette(){
+  const pal=$("#palette"); pal.innerHTML="";
+  const ext=$("#extras"); if(ext) ext.innerHTML="";
+  for(const [key,t] of Object.entries(TYPES)){
+    const used=usedCount(key), total=state.inventory[key]??0, left=total-used;
+    const b=document.createElement("button");
+    b.className="pal-item"; b.type="button"; b.dataset.k=key; b.disabled=left<=0;
+    b.innerHTML=`<span class="pal-ic">${artSVG(key,t.w,t.h)}</span><span class="pal-meta"><span class="nm">${t.nome}</span><span class="ct">Disponíveis: <b>${left}</b> de ${total}</span></span><span class="lupa" title="Ver foto real"><i class="ph-duotone ph-magnifying-glass-plus"></i></span>`;
+    b.onclick=(e)=>{ if(e.target.closest(".lupa")){ openFoto(key); return; } addItem(key); };
+    ((t.cat==="extra"&&ext)?ext:pal).appendChild(b);
+  }
+  const inv=$("#inventory"); inv.innerHTML="";
+  for(const [key,t] of Object.entries(TYPES)){
+    const row=document.createElement("div"); row.className="inv-row";
+    row.innerHTML=`<span class="inv-name"><i class="dot" style="background:${t.color};border-radius:${t.shape==='ci'?'50%':'3px'}"></i>${t.nome}</span>`;
+    const ip=document.createElement("input"); ip.type="text"; ip.value=state.inventory[key]??0;
+    ip.oninput=()=>{ const v=Math.max(0,parseInt(ip.value)||0); state.inventory[key]=v; renderPalette(); saveWorking(); };
+    row.appendChild(ip); inv.appendChild(row);
+  }
+}
+/* atualiza só os contadores, sem reconstruir os botões (evita clique fantasma no toque) */
+function refreshPaletteCounts(){
+  document.querySelectorAll(".pal-item").forEach(b=>{
+    const k=b.dataset.k; if(!k||!TYPES[k]) return;
+    const total=state.inventory[k]??0, left=total-usedCount(k);
+    b.disabled=left<=0;
+    const ct=b.querySelector(".ct"); if(ct) ct.innerHTML="Disponíveis: <b>"+left+"</b> de "+total;
+  });
+}
+
+/* ---------- Fotos reais do mobiliário (vêm do commit histórico do repo, sem pesar este arquivo) ---------- */
+const FOTO_URL="https://raw.githubusercontent.com/LolaCCMQ/LolaLayout/75aa656/index.html";
+let FOTOS=null,_fotosBusy=false;
+async function ensureFotos(){
+  if(FOTOS||_fotosBusy) return FOTOS;
+  _fotosBusy=true;
+  try{
+    const tx=await (await fetch(FOTO_URL)).text();
+    const out={}; const re=/(\w+)\s*:\s*"(data:image\/[a-z]+;base64,[^"]+)"/g; let m;
+    while((m=re.exec(tx))) out[m[1]]=m[2];
+    FOTOS=out;
+  }catch(e){ FOTOS=null; }
+  _fotosBusy=false;
+  return FOTOS;
+}
+function fotoDe(key){ return FOTOS?(FOTOS[key]||null):null; }
+const fotoPrev=document.getElementById("fotoPrev");
+function showFotoPrev(btn,key,e){
+  if(!key||!fotoPrev) return;
+  if(!FOTOS){ ensureFotos().then(()=>{ try{ if(btn.matches(":hover")) showFotoPrev(btn,key,e); }catch(_){} }); return; }
+  const src=fotoDe(key); if(!src){ fotoPrev.style.display="none"; return; }
+  fotoPrev.querySelector("img").src=src;
+  fotoPrev.querySelector(".fp-nm").textContent=TYPES[key]?TYPES[key].nome:"";
+  fotoPrev.style.display="block"; moveFotoPrev(e);
+}
+function moveFotoPrev(e){
+  if(!fotoPrev||fotoPrev.style.display!=="block") return;
+  const w=252, hh=fotoPrev.offsetHeight||200;
+  let x=e.clientX+18, y=e.clientY-40;
+  if(x+w>window.innerWidth) x=e.clientX-w-14;
+  if(y+hh>window.innerHeight) y=window.innerHeight-hh-8;
+  if(y<8) y=8;
+  fotoPrev.style.left=x+"px"; fotoPrev.style.top=y+"px";
+}
+function hideFotoPrev(){ if(fotoPrev) fotoPrev.style.display="none"; }
+async function openFoto(key){
+  const ov=document.getElementById("fotoOv"), im=document.getElementById("fotoOvImg"), nm=document.getElementById("fotoOvNm");
+  if(!ov) return;
+  nm.textContent=(TYPES[key]?TYPES[key].nome:"")+" — carregando…"; im.removeAttribute("src");
+  ov.classList.add("show");
+  await ensureFotos();
+  const src=fotoDe(key);
+  if(src){ im.src=src; nm.textContent=TYPES[key]?TYPES[key].nome:""; }
+  else nm.textContent=(TYPES[key]?TYPES[key].nome+" — ":"")+"sem foto cadastrada";
+}
+(function(){
+  const ov=document.getElementById("fotoOv"), cl=document.getElementById("fotoOvClose");
+  if(cl) cl.onclick=()=>ov.classList.remove("show");
+  if(ov) ov.onclick=e=>{ if(e.target===ov) ov.classList.remove("show"); };
+  ["palette","extras"].forEach(id=>{
+    const host=document.getElementById(id); if(!host) return;
+    host.addEventListener("mouseover",e=>{ const b=e.target.closest(".pal-item"); if(b) showFotoPrev(b,b.dataset.k,e); });
+    host.addEventListener("mousemove",e=>moveFotoPrev(e));
+    host.addEventListener("mouseout",e=>{ if(e.target.closest(".pal-item")) hideFotoPrev(); });
+  });
+})();
+
+/* ---------- Render canvas ---------- */
+function renderCanvas(){
+  canvas.style.width=state.canvasW+"px";
+  canvas.style.height=state.canvasH+"px";
+  if(state.floor){ floorImg.src=state.floor; floorImg.hidden=false; emptyHint.style.display="none"; }
+  else { floorImg.hidden=true; emptyHint.style.display="grid"; }
+  [...canvas.querySelectorAll(".item")].forEach(e=>e.remove());
+  state.items.forEach(renderItem);
+  applyZoom();
+  updateSeatCount();
+}
+function editItemNumber(it){
+  let ov=document.getElementById('numModal');
+  if(!ov){ ov=document.createElement('div'); ov.id='numModal'; ov.className='num-ov';
+    ov.innerHTML='<div class="num-box"><h3>Digite o número da mesa</h3><input id="numInput" type="text" inputmode="numeric" placeholder="ex.: 12"><div class="num-actions"><button class="btn ghost" id="numCancel">Cancelar</button><button class="btn primary" id="numOk">OK</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  const inp=ov.querySelector('#numInput'); inp.value=it.num||'';
+  ov.style.display='flex'; setTimeout(function(){inp.focus();inp.select();},30);
+  function close(){ ov.style.display='none'; }
+  function apply(){ it.num=(inp.value||'').trim(); if($("#chkLabels")&&!$("#chkLabels").checked)$("#chkLabels").checked=true; renderItem(it); saveWorking(); toast(it.num?("Mesa "+it.num):"Número removido"); close(); }
+  ov.querySelector('#numOk').onclick=apply;
+  ov.querySelector('#numCancel').onclick=close;
+  inp.onkeydown=function(e){ if(e.key==='Enter')apply(); else if(e.key==='Escape')close(); };
+  ov.onclick=function(e){ if(e.target===ov) close(); };
+}
+function renderItem(it){
+  let el=canvas.querySelector(`[data-id="${it.id}"]`);
+  if(!el){
+    el=document.createElement("div"); el.className="item"; el.dataset.id=it.id;
+    canvas.appendChild(el);
+    attachDrag(el,it);
+    el.addEventListener("dblclick",ev=>{ev.preventDefault();ev.stopPropagation();editItemNumber(it);});
+  }
+  el.style.width=it.w+"px"; el.style.height=it.h+"px";
+  el.style.left=it.x+"px"; el.style.top=it.y+"px";
+  el.style.transform=`rotate(${it.rot||0}deg)`;
+  const key=it.type+"_"+it.w+"x"+it.h;
+  if(el.dataset.art!==key){
+    el.innerHTML=artSVG(it.type,it.w,it.h)+'<span class="rot-line"></span><span class="rot-h"></span><span class="lbl"></span>';
+    el.dataset.art=key;
+  }
+  const L=el.querySelector(".lbl");
+  const hasNum=($("#chkLabels").checked && it.num!=null && it.num!=="");
+  L.textContent = hasNum ? it.num : "";
+  L.style.display = hasNum ? "inline-flex" : "none";
+  L.style.transform = "rotate("+(-(it.rot||0))+"deg)";
+  const inSel = selUnion().has(it.id);
+  el.classList.toggle("sel", inSel);
+  el.classList.toggle("primary", it.id===selectedId);
+}
+
+/* ---------- Grupos (mesa + cadeiras) ---------- */
+function groupOf(o){ return (o&&o.group) ? state.items.filter(i=>i.group===o.group) : (o?[o]:[]); }
+function groupCentroid(items){ let a=1e9,b=1e9,c=-1e9,d=-1e9; items.forEach(o=>{a=Math.min(a,o.x);b=Math.min(b,o.y);c=Math.max(c,o.x+o.w);d=Math.max(d,o.y+o.h);}); return [(a+c)/2,(b+d)/2]; }
+function rotatePoint(cx,cy,x,y,deg){ const r=deg*Math.PI/180,co=Math.cos(r),si=Math.sin(r),dx=x-cx,dy=y-cy; return [cx+dx*co-dy*si, cy+dx*si+dy*co]; }
+function rotateGroup(items,delta){
+  if(items.length<=1){ const o=items[0]; if(o) o.rot=((o.rot||0)+delta+360)%360; return; }
+  const [gx,gy]=groupCentroid(items);
+  items.forEach(o=>{ const [nx,ny]=rotatePoint(gx,gy,o.x+o.w/2,o.y+o.h/2,delta); o.x=Math.round(nx-o.w/2); o.y=Math.round(ny-o.h/2); o.rot=((o.rot||0)+delta+360)%360; });
+}
+
+/* ---------- Seleção múltipla ---------- */
+function selUnion(){
+  const ids=new Set();
+  selSet.forEach(id=>{ const o=state.items.find(i=>i.id===id); if(!o) return; groupOf(o).forEach(p=>ids.add(p.id)); });
+  return ids;
+}
+function unionItems(){ const u=selUnion(); return state.items.filter(i=>u.has(i.id)); }
+function delSelection(){
+  if(!selSet.size) return;
+  pushHistory();
+  const u=selUnion();
+  if(selSet.size===1){ const o=state.items.find(i=>i.id===selectedId); if(o&&SEATS[o.type]){ u.clear(); u.add(o.id); } }
+  state.items=state.items.filter(i=>!u.has(i.id));
+  selSet.clear(); selectedId=null;
+  renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+}
+function rotateSelection(delta){
+  if(!selSet.size) return;
+  pushHistory();
+  rotateGroup(unionItems(),delta);
+  renderCanvas(); saveWorking();
+}
+function dupSelection(){
+  if(!selSet.size) return;
+  const groups=new Map();
+  selSet.forEach(id=>{ const o=state.items.find(i=>i.id===id); if(!o) return; const k=o.group?("g"+o.group):("i"+o.id); if(!groups.has(k)) groups.set(k,groupOf(o)); });
+  const need={};
+  groups.forEach(items=>items.forEach(p=>need[p.type]=(need[p.type]||0)+1));
+  for(const k in need){ if(usedCount(k)+need[k] > (state.inventory[k]||0)){ toast("Sem unidades disponíveis",true); return; } }
+  pushHistory();
+  const newSel=new Set(); let last=null;
+  groups.forEach(items=>{
+    const ng=(items.length>1||items[0].group)?groupSeq++:null;
+    items.forEach(p=>{ const c={...p,id:uid++,x:p.x+18,y:p.y+18,group:ng}; state.items.push(c); if(selSet.has(p.id)){ newSel.add(c.id); last=c.id; } });
+  });
+  selSet=newSel; selectedId=last;
+  renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+}
+
+/* ---------- Cadeiras ao redor da mesa (substitui os combos) ---------- */
+const TABLE_SEAT={quadInt:"cadeira", madeira:"cadeira", cinzaCup:"cadeira", redSchwe:"cadeira", redVaz:"cadeira", retGrande:"cadeira", retBaixa:"cadeira", bistroFix:"banqueta", bistroDob:"banqueta"};
+const SEATS={cadeira:1, banqueta:1, pufe:1};
+function seatsOf(tbl){ if(!tbl||!tbl.group) return []; const st=TABLE_SEAT[tbl.type]; return state.items.filter(i=>i.group===tbl.group && i.type===st); }
+function setSeats(tbl,n){
+  const st=TABLE_SEAT[tbl.type]; if(!st) return;
+  n=Math.max(0,Math.min(12,n));
+  const cur=seatsOf(tbl), t=TYPES[st], delta=n-cur.length;
+  if(delta===0) return;
+  if(delta>0 && usedCount(st)+delta > (state.inventory[st]||0)){ toast("Sem "+t.nome.toLowerCase()+"s disponíveis no estoque",true); return; }
+  pushHistory();
+  if(!tbl.group) tbl.group=groupSeq++;
+  const ids=new Set(cur.map(i=>i.id));
+  state.items=state.items.filter(i=>!ids.has(i.id));
+  const cx=tbl.x+tbl.w/2, cy=tbl.y+tbl.h/2, OV=0.55, round=TYPES[tbl.type].shape==="ci";
+  for(let i=0;i<n;i++){
+    let ang,px,py;
+    if(round){
+      ang=-90+i*360/n;
+      const R=tbl.w/2 + t.h*(0.5-OV);
+      px=cx+R*Math.cos(ang*Math.PI/180); py=cy+R*Math.sin(ang*Math.PI/180);
+    } else {
+      const P=2*(tbl.w+tbl.h); let s=(i+0.5)*P/n + tbl.w/2; s=s%P;
+      if(s<tbl.w){ ang=-90; px=tbl.x+s; py=tbl.y; }
+      else if(s<tbl.w+tbl.h){ ang=0; px=tbl.x+tbl.w; py=tbl.y+(s-tbl.w); }
+      else if(s<2*tbl.w+tbl.h){ ang=90; px=tbl.x+(2*tbl.w+tbl.h-s); py=tbl.y+tbl.h; }
+      else { ang=180; px=tbl.x; py=tbl.y+(2*(tbl.w+tbl.h)-s); }
+      const off=t.h*(0.5-OV);
+      px+=Math.cos(ang*Math.PI/180)*off; py+=Math.sin(ang*Math.PI/180)*off;
+    }
+    if(tbl.rot){ const r=tbl.rot*Math.PI/180, dx=px-cx, dy=py-cy; px=cx+dx*Math.cos(r)-dy*Math.sin(r); py=cy+dx*Math.sin(r)+dy*Math.cos(r); }
+    const rot=(((ang+90+(tbl.rot||0))%360)+360)%360;
+    state.items.push({id:uid++, type:st, x:Math.round(px-t.w/2), y:Math.round(py-t.h/2), w:t.w, h:t.h, rot:rot, group:tbl.group});
+  }
+  renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+}
+
+/* ---------- Adicionar / manipular itens ---------- */
+let _lastAdd={t:0,k:""};
+function visibleCenter(){
+  try{
+    const cr=canvas.getBoundingClientRect(), wr=stageWrap.getBoundingClientRect();
+    const l=Math.max(cr.left,wr.left), r=Math.min(cr.right,wr.right);
+    const tp=Math.max(cr.top,wr.top), bt=Math.min(cr.bottom,wr.bottom);
+    if(r>l && bt>tp) return [((l+r)/2-cr.left)/zoom, ((tp+bt)/2-cr.top)/zoom];
+  }catch(e){}
+  return [state.canvasW/2, state.canvasH/2];
+}
+function addItem(type){
+  const now=Date.now();
+  if(type===_lastAdd.k && now-_lastAdd.t<350) return; /* bloqueia toque duplicado */
+  _lastAdd={t:now,k:type};
+  const total=state.inventory[type]??0;
+  if(usedCount(type)>=total){ toast("Sem unidades disponíveis de "+TYPES[type].nome,true); return; }
+  const t=TYPES[type];
+  const [vx,vy]=visibleCenter();
+  const off=(state.items.length%6)*12;
+  const it={id:uid++, type,
+    x:Math.max(0,Math.min(state.canvasW-t.w,Math.round(vx-t.w/2+off))),
+    y:Math.max(0,Math.min(state.canvasH-t.h,Math.round(vy-t.h/2+off))),
+    w:t.w, h:t.h, rot:0};
+  pushHistory();
+  state.items.push(it);
+  selectedId=it.id; selSet=new Set([it.id]);
+  renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+}
+function deleteItem(id){
+  const o=state.items.find(i=>i.id===id); if(!o) return;
+  pushHistory();
+  const grp = SEATS[o.type] ? [o] : groupOf(o);
+  const ids=new Set(grp.map(x=>x.id));
+  state.items=state.items.filter(i=>!ids.has(i.id));
+  if(ids.has(selectedId)) selectedId=null;
+  renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+}
+function duplicateItem(id){
+  const o=state.items.find(i=>i.id===id); if(!o) return;
+  const grp=groupOf(o);
+  const need={}; grp.forEach(p=>need[p.type]=(need[p.type]||0)+1);
+  for(const k in need){ if(usedCount(k)+need[k] > (state.inventory[k]||0)){ toast("Sem unidades disponíveis",true); return; } }
+  pushHistory();
+  const ng = o.group ? groupSeq++ : null;
+  let first=null;
+  grp.forEach(p=>{ const c={...p,id:uid++,x:p.x+18,y:p.y+18,group:ng}; if(first===null) first=c.id; state.items.push(c); });
+  selectedId=first;
+  renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+}
+function rotateItem(id,delta){
+  const o=state.items.find(i=>i.id===id); if(!o) return;
+  pushHistory();
+  rotateGroup(groupOf(o),delta);
+  renderCanvas(); saveWorking();
+}
+function selectItem(id){
+  const mc=document.getElementById("chkMulti");
+  if(mc&&mc.checked){ selSet.add(id); } else { selSet=new Set([id]); }
+  selectedId=id;
+  state.items.forEach(renderItem);
+  updateSelBar();
+}
+
+/* ---------- Barra de seleção ---------- */
+function updateSelBar(){
+  selBar.classList.toggle("show", selSet.size>0);
+  const o=state.items.find(i=>i.id===selectedId);
+  const box=document.getElementById("seatCtl");
+  if(box){
+    if(selSet.size===1 && o && TABLE_SEAT[o.type]){ box.style.display="flex"; document.getElementById("seatN").textContent=seatsOf(o).length; }
+    else box.style.display="none";
+  }
+}
+selBar.addEventListener("click",e=>{
+  const act=e.target.closest("button")?.dataset.act; if(!act||!selSet.size) return;
+  const o=state.items.find(i=>i.id===selectedId);
+  if(act==="seatMinus"||act==="seatPlus"){ if(o&&TABLE_SEAT[o.type]) setSeats(o, seatsOf(o).length + (act==="seatPlus"?1:-1)); return; }
+  if(act==="rotL") rotateSelection(-15);
+  if(act==="rotR") rotateSelection(15);
+  if(act==="dup") dupSelection();
+  if(act==="del") delSelection();
+  if(act==="front"){ pushHistory(); const g=unionItems(); const ids=new Set(g.map(x=>x.id)); state.items=state.items.filter(i=>!ids.has(i.id)); g.forEach(x=>state.items.push(x)); renderCanvas(); saveWorking(); }
+});
+
+/* ---------- Drag + rotação por handle ---------- */
+function attachDrag(el,it){
+  let mode=null, sx,sy, gcx,gcy, startAngle, list;
+  const dom=id=>canvas.querySelector('[data-id="'+id+'"]');
+  el.addEventListener("pointerdown",e=>{
+    const isRot=e.target.classList.contains("rot-h");
+    selectItem(it.id);
+    pushHistory();
+    const grp = e.altKey ? [it] : unionItems();
+    const r=canvas.getBoundingClientRect();
+    if(isRot){
+      mode="rot";
+      [gcx,gcy] = (grp.length>1) ? groupCentroid(grp) : [it.x+it.w/2, it.y+it.h/2];
+      const px=r.left+gcx*zoom, py=r.top+gcy*zoom;
+      startAngle=Math.atan2(e.clientY-py,e.clientX-px)*180/Math.PI;
+      cxScreen=px; cyScreen=py;
+      list=grp.map(o=>({o, cx0:o.x+o.w/2, cy0:o.y+o.h/2, rot0:o.rot||0}));
+    } else {
+      mode="move"; sx=e.clientX; sy=e.clientY;
+      list=grp.map(o=>({o, ox:o.x, oy:o.y}));
+    }
+    el.setPointerCapture(e.pointerId);
+    e.preventDefault(); e.stopPropagation();
+  });
+  let cxScreen,cyScreen;
+  el.addEventListener("pointermove",e=>{
+    if(!mode) return;
+    if(mode==="move"){
+      let dx=(e.clientX-sx)/zoom, dy=(e.clientY-sy)/zoom;
+      if($("#chkSnap").checked){ const p=list.find(s=>s.o.id===it.id)||list[0]; dx=Math.round((p.ox+dx)/25)*25 - p.ox; dy=Math.round((p.oy+dy)/25)*25 - p.oy; }
+      list.forEach(s=>{ s.o.x=Math.max(0,Math.min(state.canvasW-s.o.w,s.ox+dx)); s.o.y=Math.max(0,Math.min(state.canvasH-s.o.h,s.oy+dy)); const ee=dom(s.o.id); if(ee){ee.style.left=s.o.x+"px";ee.style.top=s.o.y+"px";} });
+    } else if(mode==="rot"){
+      let delta=Math.atan2(e.clientY-cyScreen,e.clientX-cxScreen)*180/Math.PI - startAngle;
+      if($("#chkSnap").checked) delta=Math.round(delta/15)*15;
+      list.forEach(s=>{ const [nx,ny]=rotatePoint(gcx,gcy,s.cx0,s.cy0,delta); s.o.x=Math.round(nx-s.o.w/2); s.o.y=Math.round(ny-s.o.h/2); s.o.rot=((s.rot0+delta)%360+360)%360; const ee=dom(s.o.id); if(ee){ ee.style.left=s.o.x+"px"; ee.style.top=s.o.y+"px"; ee.style.transform="rotate("+s.o.rot+"deg)"; } });
+    }
+  });
+  el.addEventListener("pointerup",e=>{ if(mode){mode=null; saveWorking();} });
+}
+
+/* clique no fundo desseleciona */
+canvas.addEventListener("pointerdown",e=>{ if(e.target===canvas||e.target===floorImg||e.target===emptyHint){ selectedId=null; selSet.clear(); state.items.forEach(renderItem); updateSelBar(); }});
+
+/* ---------- Teclado ---------- */
+document.addEventListener("keydown",e=>{
+  if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){ e.preventDefault(); undo(); return; }
+  if(!selSet.size) return;
+  if(e.key==="Delete"||e.key==="Backspace"){ e.preventDefault(); delSelection(); }
+  else if(e.key.toLowerCase()==="r"){ rotateSelection(e.shiftKey?-15:15); }
+  else if(e.key.toLowerCase()==="d"){ e.preventDefault(); dupSelection(); }
+  else if(e.key.startsWith("Arrow")){
+    e.preventDefault(); if(!e.repeat) pushHistory(); const s=e.shiftKey?25:2;
+    let dx=0,dy=0;
+    if(e.key==="ArrowLeft")dx=-s; if(e.key==="ArrowRight")dx=s;
+    if(e.key==="ArrowUp")dy=-s; if(e.key==="ArrowDown")dy=s;
+    unionItems().forEach(p=>{ p.x=Math.max(0,Math.min(state.canvasW-p.w,p.x+dx)); p.y=Math.max(0,Math.min(state.canvasH-p.h,p.y+dy)); });
+    renderCanvas(); saveWorking();
+  }
+});
+
+/* ---------- Zoom ---------- */
+function applyZoom(){ stage.style.transform=`scale(${zoom})`; $("#zoomReset").textContent=Math.round(zoom*100)+"%"; }
+$("#zoomIn").onclick=()=>{ zoom=Math.min(2.5,zoom+0.1); applyZoom(); };
+$("#zoomOut").onclick=()=>{ zoom=Math.max(0.3,zoom-0.1); applyZoom(); };
+$("#zoomReset").onclick=()=>{ zoom=1; applyZoom(); };
+
+/* ---------- Toggles ---------- */
+$("#chkGrid").onchange=e=>main.classList.toggle("grid-on",e.target.checked);
+$("#chkLabels").onchange=()=>state.items.forEach(renderItem);
+main.classList.add("grid-on");
+
+/* ---------- Planta baixa ---------- */
+$("#btnFloor").onclick=()=>$("#fileFloor").click();
+$("#fileFloor").onchange=e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxW=1100; let w=img.width,h=img.height;
+      if(w>maxW){ h=h*maxW/w; w=maxW; }
+      state.canvasW=Math.round(w); state.canvasH=Math.round(h);
+      state.floor=rd.result;
+      renderCanvas(); saveWorking(); toast("Planta carregada");
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+  e.target.value="";
+};
+
+/* ---------- Salvar / carregar (localStorage) ---------- */
+function getLayouts(){ try{return JSON.parse(localStorage.getItem(LS_LAYOUTS))||{};}catch{return{};} }
+function setLayouts(o){ localStorage.setItem(LS_LAYOUTS,JSON.stringify(o)); }
+function snapshot(){ return {name:state.name,floor:state.floor,canvasW:state.canvasW,canvasH:state.canvasH,inventory:state.inventory,items:state.items}; }
+function saveWorking(){ try{localStorage.setItem(LS_WORKING,JSON.stringify(snapshot()));}catch{} if(EV_ID) saveToEvent(); }
+
+$("#layoutName").oninput=e=>{ state.name=e.target.value; saveWorking(); };
+
+$("#btnSave").onclick=()=>{
+  const nm=($("#layoutName").value||"").trim();
+  if(!nm){ toast("Dê um nome ao layout",true); $("#layoutName").focus(); return; }
+  if(state.items.length===0){ toast("Adicione móveis antes de salvar",true); return; }
+  state.name=nm;
+  const all=getLayouts();
+  all[nm]={...snapshot(), savedAt:Date.now()};
+  setLayouts(all);
+  toast('Layout "'+nm+'" salvo');
+};
+
+$("#btnNew").onclick=()=>{
+  if(state.items.length && !confirm("Começar um layout novo? As alterações não salvas serão perdidas.")) return;
+  state={name:"",floor:state.floor,canvasW:state.canvasW,canvasH:state.canvasH,inventory:{...state.inventory},items:[]};
+  selectedId=null; selSet.clear(); $("#layoutName").value="";
+  renderCanvas(); renderPalette(); updateSelBar(); saveWorking();
+  toast("Novo layout (a planta foi mantida)");
+};
+
+$("#btnLoad").onclick=()=>{ renderSavedList(); $("#modalLoad").classList.add("show"); };
+$("#closeLoad").onclick=()=>$("#modalLoad").classList.remove("show");
+$("#modalLoad").onclick=e=>{ if(e.target===$("#modalLoad")) $("#modalLoad").classList.remove("show"); };
+
+function renderSavedList(){
+  const all=getLayouts(); const list=$("#savedList"); list.innerHTML="";
+  const keys=Object.keys(all).sort((a,b)=>(all[b].savedAt||0)-(all[a].savedAt||0));
+  if(!keys.length){ list.innerHTML='<div style="color:var(--apagado);font-size:13px;padding:8px">Nenhum layout salvo ainda.</div>'; return; }
+  keys.forEach(k=>{
+    const L=all[k];
+    const row=document.createElement("div"); row.className="saved-row";
+    const dt=L.savedAt?new Date(L.savedAt).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+    row.innerHTML=`<span class="nm">${k}<br><span class="dt">${L.items?.length||0} móveis · ${dt}</span></span>`;
+    const open=document.createElement("button"); open.className="btn primary"; open.textContent="Abrir";
+    open.onclick=()=>{ loadLayout(L); $("#modalLoad").classList.remove("show"); };
+    const del=document.createElement("button"); del.className="btn icon danger"; del.innerHTML='<i class="ph-duotone ph-trash"></i>';
+    del.onclick=()=>{ if(confirm('Excluir "'+k+'"?')){ const a=getLayouts(); delete a[k]; setLayouts(a); renderSavedList(); } };
+    row.appendChild(open); row.appendChild(del); list.appendChild(row);
+  });
+}
+function loadLayout(L){
+  state={name:L.name||"",floor:L.floor||null,canvasW:L.canvasW||1000,canvasH:L.canvasH||650,
+         inventory:{...DEFAULT_INV,...(L.inventory||{})},items:(L.items||[]).filter(i=>TYPES[i.type]).map(i=>({...i}))};
+  migrateFloor();
+  uid=Math.max(0,...state.items.map(i=>i.id||0))+1;
+  groupSeq=Math.max(0,...state.items.map(i=>i.group||0))+1;
+  selectedId=null; selSet.clear(); $("#layoutName").value=state.name;
+  renderCanvas(); renderPalette(); updateSelBar(); saveWorking();
+  toast('Layout "'+state.name+'" aberto');
+}
+
+/* ---------- Histórico (desfazer) ---------- */
+let history=[];
+function pushHistory(){ try{ history.push(JSON.stringify(state.items)); if(history.length>60) history.shift(); }catch{} }
+function undo(){ if(!history.length){ toast("Nada para desfazer"); return; } state.items=JSON.parse(history.pop()); selectedId=null; selSet.clear(); renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking(); }
+$("#btnUndo").onclick=undo;
+
+/* ---------- Contador de lugares ---------- */
+function updateSeatCount(){ let n=0; state.items.forEach(i=>n+=SEATS[i.type]||0); const el=$("#seatCount"); if(el) el.textContent="Lugares: "+n; }
+
+/* ---------- Exportar imagem (PNG) ---------- */
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function exportPNG(){
+  const scale=2, cw=state.canvasW, ch=state.canvasH;
+  const c=document.createElement("canvas"); c.width=cw*scale; c.height=ch*scale;
+  const ctx=c.getContext("2d"); ctx.scale(scale,scale);
+  ctx.fillStyle="#FBF7F1"; ctx.fillRect(0,0,cw,ch);
+  const labels=$("#chkLabels").checked;
+  const drawItems=()=>{
+    state.items.forEach(it=>drawItemCanvas(ctx,it,labels));
+    try{ const a=document.createElement("a"); a.href=c.toDataURL("image/png"); a.download=((state.name||"layout-lola").replace(/[^\w\-]+/g,"_"))+".png"; a.click(); toast("Imagem exportada"); }
+    catch(err){ toast("Não foi possível exportar a imagem",true); }
+  };
+  if(state.floor){ const im=new Image();
+    im.onload=()=>{ const ir=im.width/im.height, cr=cw/ch; let dw,dh,dx,dy;
+      if(ir>cr){ dw=cw; dh=cw/ir; dx=0; dy=(ch-dh)/2; } else { dh=ch; dw=ch*ir; dy=0; dx=(cw-dw)/2; }
+      ctx.drawImage(im,dx,dy,dw,dh); drawItems(); };
+    im.onerror=drawItems; im.src=state.floor;
+  } else drawItems();
+}
+$("#btnPng").onclick=exportPNG;
+
+/* ---------- Init ---------- */
+(async function init(){
+  let restored=false;
+  if(EV_ID && SB){
+    try{ const r=await SB.from('lola_eventos').select('layout_json').eq('id',EV_ID).single(); if(r&&r.data&&r.data.layout_json&&r.data.layout_json.items){ loadLayout(r.data.layout_json); restored=true; } }catch(e){}
+    ['btnLoad','btnNew','layoutName'].forEach(function(id){var e=document.getElementById(id); if(e)e.style.display='none';});
+    var bs=document.getElementById('btnSave'); if(bs){ bs.innerHTML='<i class="ph-duotone ph-floppy-disk"></i><span class="tx">Salvar no evento</span>'; bs.onclick=function(){ if(!state.name)state.name='Layout do evento'; saveToEvent(); toast('Salvo no evento ✓'); }; }
+  } else if(LIB_MODE){
+    const bs=document.getElementById('btnSave'); if(bs){ bs.innerHTML='<i class="ph-duotone ph-floppy-disk"></i><span class="tx">Salvar na biblioteca</span>'; bs.onclick=async function(){ const nm=(document.getElementById('layoutName').value||state.name||'').trim(); if(!nm){ toast('Dê um nome ao layout',true); document.getElementById('layoutName').focus(); return; } if(state.items.length===0){ toast('Adicione móveis antes de salvar',true); return; } state.name=nm; const ok=await libSave(nm); toast(ok?('Salvo na biblioteca: '+nm):'Erro ao salvar',!ok); }; }
+    const bl=document.getElementById('btnLoad'); if(bl){ bl.innerHTML='<i class="ph-duotone ph-folder-open"></i><span class="tx">Biblioteca</span>'; bl.onclick=async function(){ await renderLibList(); document.getElementById('modalLoad').classList.add("show"); }; }
+    const ln=document.getElementById('layoutName'); if(ln) ln.placeholder='Nome do layout (ex.: Restaurante padrão)';
+  } else {
+    try{ const w=JSON.parse(localStorage.getItem(LS_WORKING)); if(w&&w.items){ loadLayout(w); restored=true; } }catch{}
+  }
+  migrateFloor();
+  if(!restored || !state.floor){ state.floor=DEFAULT_FLOOR; state.canvasW=FLOOR_W; state.canvasH=FLOOR_H; }
+  renderCanvas(); renderPalette();
+})();
+</script>
+</body>
+</html>
