@@ -59,7 +59,7 @@
 
   main{flex:1;position:relative;overflow:hidden;background:var(--creme)}
   .stage-wrap{position:absolute;inset:0;overflow:auto}
-  .stage{position:relative;margin:40px auto;transform-origin:0 0}
+  .stage{position:relative;margin:12px auto;transform-origin:0 0}
   #canvas{position:relative;background:#FBF7F1;border:1px solid var(--borda);border-radius:4px;overflow:hidden}
   #floorImg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none}
   .grid-on #canvas{background-image:
@@ -224,6 +224,7 @@
       </div>
 
       <div class="zoom-bar">
+        <button class="btn icon ghost" id="zoomFit" title="Ajustar a planta à tela"><i class="ph-duotone ph-corners-out"></i></button>
         <button class="btn icon ghost" id="zoomOut"><i class="ph-duotone ph-minus"></i></button>
         <button class="btn ghost" id="zoomReset" style="min-width:56px">100%</button>
         <button class="btn icon ghost" id="zoomIn"><i class="ph-duotone ph-plus"></i></button>
@@ -810,9 +811,22 @@ document.addEventListener("keydown",e=>{
 });
 
 /* ---------- Zoom ---------- */
-function applyZoom(){ stage.style.transform=`scale(${zoom})`; $("#zoomReset").textContent=Math.round(zoom*100)+"%"; }
+function applyZoom(){
+  stage.style.transform=`scale(${zoom})`;
+  stage.style.width=(state.canvasW*zoom)+"px";
+  stage.style.height=(state.canvasH*zoom)+"px";
+  $("#zoomReset").textContent=Math.round(zoom*100)+"%";
+}
+function fitZoom(){
+  const w=stageWrap.clientWidth-24, h=stageWrap.clientHeight-24;
+  if(w>50&&h>50) zoom=Math.max(0.2,Math.min(2.5,Math.min(w/state.canvasW,h/state.canvasH)));
+  applyZoom();
+}
+let _fitT=null;
+window.addEventListener("resize",()=>{ clearTimeout(_fitT); _fitT=setTimeout(fitZoom,200); });
+$("#zoomFit").onclick=fitZoom;
 $("#zoomIn").onclick=()=>{ zoom=Math.min(2.5,zoom+0.1); applyZoom(); };
-$("#zoomOut").onclick=()=>{ zoom=Math.max(0.3,zoom-0.1); applyZoom(); };
+$("#zoomOut").onclick=()=>{ zoom=Math.max(0.2,zoom-0.1); applyZoom(); };
 $("#zoomReset").onclick=()=>{ zoom=1; applyZoom(); };
 
 /* ---------- Toggles ---------- */
@@ -946,6 +960,7 @@ $("#btnPng").onclick=exportPNG;
   migrateFloor();
   if(!restored || !state.floor){ state.floor=DEFAULT_FLOOR; state.canvasW=FLOOR_W; state.canvasH=FLOOR_H; }
   renderCanvas(); renderPalette();
+  fitZoom();
 })();
 </script>
 </body>
