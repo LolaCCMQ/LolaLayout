@@ -313,9 +313,10 @@ const TYPES = {
   floreira:  {nome:"Floreira redonda 60cm",       w:30,  h:30, color:"#5F7D4F", edge:"#42603A", mat:"plant", shape:"ci", abbr:"FL",    cat:"extra"},
   bar200:    {nome:"Bar 2,00×0,70 m",             w:100, h:35, color:"#97A0A0", edge:"#6E7678", grain:"#B26B35", mat:"bar", shape:"sq", abbr:"BAR",   cat:"extra"},
   bar120:    {nome:"Bar 1,20×0,60 m",             w:60,  h:30, color:"#97A0A0", edge:"#6E7678", grain:"#B26B35", mat:"bar", shape:"sq", abbr:"BAR",   cat:"extra"},
+  aparador:  {nome:"Estante de apoio 90×50",      w:45,  h:25, color:"#3B3733", edge:"#23201E", mat:"metal", shape:"sq", abbr:"EA", cat:"extra"},
 };
 /* estoque real do Lola (ajustável no app) */
-const DEFAULT_INV = {quadInt:20, madeira:4, cinzaCup:7, bistroFix:2, bistroDob:10, redSchwe:6, redVaz:3, retGrande:1, retBaixa:1, cadeira:102, banqueta:16, pufe:14, telao:1, projetor:1, palco:1, floreira:8, bar200:1, bar120:1};
+const DEFAULT_INV = {quadInt:20, madeira:4, cinzaCup:7, bistroFix:2, bistroDob:10, redSchwe:6, redVaz:3, retGrande:1, retBaixa:1, cadeira:102, banqueta:16, pufe:14, telao:1, projetor:1, palco:1, floreira:8, bar200:1, bar120:1, aparador:1};
 const SCALE_FURN=1.12; /* mesas um pouco maiores p/ visibilidade */
 Object.values(TYPES).forEach(t=>{ t.w=Math.round(t.w*SCALE_FURN); t.h=Math.round(t.h*SCALE_FURN); });
 
@@ -473,11 +474,13 @@ async function ensureFotos(){
   _fotosBusy=false;
   return FOTOS;
 }
-function fotoDe(key){ return FOTOS?(FOTOS[key]||null):null; }
+/* fotos de móveis novos: arquivos na pasta fotos/ do repo */
+const FOTO_LOCAL={aparador:"fotos/estante-apoio.jpg"};
+function fotoDe(key){ if(FOTO_LOCAL[key]) return FOTO_LOCAL[key]; return FOTOS?(FOTOS[key]||null):null; }
 const fotoPrev=document.getElementById("fotoPrev");
 function showFotoPrev(btn,key,e){
   if(!key||!fotoPrev) return;
-  if(!FOTOS){ ensureFotos().then(()=>{ try{ if(btn.matches(":hover")) showFotoPrev(btn,key,e); }catch(_){} }); return; }
+  if(!FOTOS && !FOTO_LOCAL[key]){ ensureFotos().then(()=>{ try{ if(btn.matches(":hover")) showFotoPrev(btn,key,e); }catch(_){} }); return; }
   const src=fotoDe(key); if(!src){ fotoPrev.style.display="none"; return; }
   fotoPrev.querySelector("img").src=src;
   fotoPrev.querySelector(".fp-nm").textContent=TYPES[key]?TYPES[key].nome:"";
@@ -504,6 +507,9 @@ async function openFoto(key){
   else nm.textContent=(TYPES[key]?TYPES[key].nome+" — ":"")+"sem foto cadastrada";
 }
 (function(){
+  if(fotoPrev){ const pi=fotoPrev.querySelector("img"); if(pi) pi.onerror=hideFotoPrev; }
+  const oi=document.getElementById("fotoOvImg");
+  if(oi) oi.onerror=()=>{ oi.removeAttribute("src"); const nm=document.getElementById("fotoOvNm"); if(nm&&nm.textContent.indexOf("sem foto")<0) nm.textContent+=" — foto ainda não enviada"; };
   const ov=document.getElementById("fotoOv"), cl=document.getElementById("fotoOvClose");
   if(cl) cl.onclick=()=>ov.classList.remove("show");
   if(ov) ov.onclick=e=>{ if(e.target===ov) ov.classList.remove("show"); };
