@@ -475,7 +475,7 @@ async function ensureFotos(){
   return FOTOS;
 }
 /* fotos de móveis novos: arquivos na pasta fotos/ do repo */
-const FOTO_LOCAL={aparador:"fotos/estante-apoio.jpg"};
+const FOTO_LOCAL={aparador:"fotos/bancada.jpeg"};
 function fotoDe(key){ if(FOTO_LOCAL[key]) return FOTO_LOCAL[key]; return FOTOS?(FOTOS[key]||null):null; }
 const fotoPrev=document.getElementById("fotoPrev");
 function showFotoPrev(btn,key,e){
