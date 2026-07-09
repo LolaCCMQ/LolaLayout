@@ -71,6 +71,7 @@
   .item{position:absolute;display:flex;align-items:center;justify-content:center;user-select:none;touch-action:none}
   .item .art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .item .lbl{position:relative;pointer-events:none;font-family:'Fraunces',Georgia,serif;font-size:12.5px;font-weight:600;color:#2A1A17;background:#fff;border:1px solid rgba(42,26,23,.35);border-radius:999px;min-width:20px;height:20px;padding:0 4px;display:none;align-items:center;justify-content:center;box-shadow:0 1px 2px rgba(42,26,23,.25)}
+  .item .tnote{position:relative;white-space:nowrap;background:rgba(255,255,255,.93);border:1px dashed rgba(168,42,42,.65);border-radius:6px;padding:3px 9px;font-size:13px;font-weight:600;color:#5A463E;pointer-events:none}
   .item.sel{outline:2px solid var(--vinho);outline-offset:2px;z-index:50}
   .item .rot-h{position:absolute;top:-22px;left:50%;width:14px;height:14px;margin-left:-7px;background:var(--vinho);border:2px solid #fff;box-shadow:0 0 0 1px var(--vinho);border-radius:50%;cursor:grab;display:none}
   .item.primary .rot-h{display:block}
@@ -307,6 +308,7 @@ const TYPES = {
   cadeira:   {nome:"Cadeira",                     w:22,  h:22, color:"#3B3733", edge:"#1E1B1A", mat:"chair", shape:"sq", abbr:"C"},
   banqueta:  {nome:"Banqueta",                    w:20,  h:20, color:"#3B3733", edge:"#1E1B1A", mat:"stool", shape:"ci", abbr:"B"},
   pufe:      {nome:"Pufe",                        w:24,  h:24, color:"#6F5B4E", edge:"#52423A", mat:"pufe", shape:"ci", abbr:"P"},
+  texto:     {nome:"Caixa de texto",              w:100, h:26, color:"#FFFFFF", edge:"#A82A2A", mat:"text", shape:"sq", abbr:"T", cat:"extra"},
   telao:     {nome:"Telão / tela",                w:120, h:20, color:"#33312E", edge:"#1E1C1A", mat:"screen", shape:"sq", abbr:"TELÃO", cat:"extra"},
   projetor:  {nome:"Projetor",                    w:20,  h:20, color:"#5B5754", edge:"#3E3B39", mat:"proj",   shape:"sq", abbr:"PJ",    cat:"extra"},
   palco:     {nome:"Mini palco 2×1m",             w:100, h:50, color:"#8A6D44", edge:"#66502F", grain:"#9E8052", mat:"wood", shape:"sq", abbr:"PALCO", cat:"extra"},
@@ -371,6 +373,8 @@ function artSVG(type,w,h){
     const bh=Math.max(4,Math.round(h*.22));
     inner=`<rect x="2" y="${Math.round(h*.13)}" width="${w-4}" height="${h-Math.round(h*.13)-2}" rx="5" fill="${t.color}" stroke="${t.edge}" stroke-width="1.2"/>`+
           `<rect x="1" y="0" width="${w-2}" height="${bh}" rx="${Math.round(bh/2)}" fill="${t.edge}"/>`;
+  } else if(t.mat==="text"){
+    inner=`<rect x="1.5" y="1.5" width="${w-3}" height="${h-3}" rx="6" fill="#FFFFFF" stroke="#A82A2A" stroke-width="1" stroke-dasharray="4 3"/><text x="${cx}" y="${cy+4}" font-family="Arial,sans-serif" font-size="12" font-weight="600" fill="#5A463E" text-anchor="middle">Abc</text>`;
   } else {
     if(ci) inner+=`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${t.color}" stroke="${t.edge||'rgba(0,0,0,.25)'}" stroke-width="1.3"/>`;
     else   inner+=`<rect x="1" y="1" width="${w-2}" height="${h-2}" rx="3" fill="${t.color}" stroke="${t.edge||'rgba(0,0,0,.25)'}" stroke-width="1.3"/>`;
@@ -400,6 +404,13 @@ function drawItemCanvas(ctx,it,labels){
   ctx.save(); ctx.translate(it.x+it.w/2,it.y+it.h/2); ctx.rotate((it.rot||0)*Math.PI/180);
   const w=it.w,h=it.h;
   ctx.fillStyle=t.color; ctx.strokeStyle=t.edge||"rgba(0,0,0,.3)"; ctx.lineWidth=1.2;
+  if(t.mat==="text"){
+    const s=it.txt||"";
+    ctx.fillStyle="rgba(255,255,255,.93)"; roundRect(ctx,-w/2,-h/2,w,h,6); ctx.fill();
+    ctx.setLineDash([4,3]); ctx.strokeStyle="rgba(168,42,42,.7)"; ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle="#5A463E"; ctx.font="600 13px 'Hanken Grotesk',Arial,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(s,0,0.5);
+    ctx.restore(); return;
+  }
   if(t.mat==="chair"){
     roundRect(ctx,-w/2+2,-h/2+h*.13,w-4,h*.87-2,5); ctx.fill(); ctx.stroke();
     ctx.fillStyle=t.edge; roundRect(ctx,-w/2+1,-h/2,w-2,Math.max(4,h*.22),Math.max(2,h*.11)); ctx.fill();
@@ -433,15 +444,19 @@ function renderPalette(){
   const pal=$("#palette"); pal.innerHTML="";
   const ext=$("#extras"); if(ext) ext.innerHTML="";
   for(const [key,t] of Object.entries(TYPES)){
+    const isNote=t.mat==="text";
     const used=usedCount(key), total=state.inventory[key]??0, left=total-used;
     const b=document.createElement("button");
-    b.className="pal-item"; b.type="button"; b.dataset.k=key; b.disabled=left<=0;
-    b.innerHTML=`<span class="pal-ic">${artSVG(key,t.w,t.h)}</span><span class="pal-meta"><span class="nm">${t.nome}</span><span class="ct">Disponíveis: <b>${left}</b> de ${total}</span></span><span class="lupa" title="Ver foto real"><i class="ph-duotone ph-magnifying-glass-plus"></i></span>`;
+    b.className="pal-item"; b.type="button"; b.dataset.k=key; b.disabled=!isNote&&left<=0;
+    const ct=isNote?"anotação livre na planta":`Disponíveis: <b>${left}</b> de ${total}`;
+    const lupa=isNote?"":'<span class="lupa" title="Ver foto real"><i class="ph-duotone ph-magnifying-glass-plus"></i></span>';
+    b.innerHTML=`<span class="pal-ic">${artSVG(key,t.w,t.h)}</span><span class="pal-meta"><span class="nm">${t.nome}</span><span class="ct">${ct}</span></span>${lupa}`;
     b.onclick=(e)=>{ if(e.target.closest(".lupa")){ openFoto(key); return; } addItem(key); };
     ((t.cat==="extra"&&ext)?ext:pal).appendChild(b);
   }
   const inv=$("#inventory"); inv.innerHTML="";
   for(const [key,t] of Object.entries(TYPES)){
+    if(t.mat==="text") continue;
     const row=document.createElement("div"); row.className="inv-row";
     row.innerHTML=`<span class="inv-name"><i class="dot" style="background:${t.color};border-radius:${t.shape==='ci'?'50%':'3px'}"></i>${t.nome}</span>`;
     const ip=document.createElement("input"); ip.type="text"; ip.value=state.inventory[key]??0;
@@ -452,7 +467,7 @@ function renderPalette(){
 /* atualiza só os contadores, sem reconstruir os botões (evita clique fantasma no toque) */
 function refreshPaletteCounts(){
   document.querySelectorAll(".pal-item").forEach(b=>{
-    const k=b.dataset.k; if(!k||!TYPES[k]) return;
+    const k=b.dataset.k; if(!k||!TYPES[k]||TYPES[k].mat==="text") return;
     const total=state.inventory[k]??0, left=total-usedCount(k);
     b.disabled=left<=0;
     const ct=b.querySelector(".ct"); if(ct) ct.innerHTML="Disponíveis: <b>"+left+"</b> de "+total;
@@ -547,27 +562,53 @@ function editItemNumber(it){
   inp.onkeydown=function(e){ if(e.key==='Enter')apply(); else if(e.key==='Escape')close(); };
   ov.onclick=function(e){ if(e.target===ov) close(); };
 }
+function noteW(v){ const c=document.createElement("canvas").getContext("2d"); c.font="600 13px 'Hanken Grotesk',Arial,sans-serif"; return Math.max(52, Math.round(c.measureText(v||"").width)+22); }
+function editItemText(it){
+  let ov=document.getElementById('txtModal');
+  if(!ov){ ov=document.createElement('div'); ov.id='txtModal'; ov.className='num-ov';
+    ov.innerHTML='<div class="num-box"><h3>Texto da anotação</h3><input id="txtInput" type="text" placeholder="ex.: aqui vai ser o caixa" style="font-size:15px;text-align:left"><div class="num-actions"><button class="btn ghost" id="txtCancel">Cancelar</button><button class="btn danger" id="txtDel"><i class="ph-duotone ph-trash"></i></button><button class="btn primary" id="txtOk">OK</button></div></div>';
+    document.body.appendChild(ov);
+  }
+  const inp=ov.querySelector('#txtInput'); inp.value=(it.txt==="Escreva aqui")?"":(it.txt||"");
+  ov.style.display='flex'; setTimeout(function(){inp.focus();inp.select();},30);
+  function close(){ ov.style.display='none'; }
+  function apply(){ const v=(inp.value||'').trim(); if(!v){ close(); return; } pushHistory(); it.txt=v; it.w=noteW(v); renderCanvas(); saveWorking(); close(); }
+  ov.querySelector('#txtOk').onclick=apply;
+  ov.querySelector('#txtCancel').onclick=close;
+  ov.querySelector('#txtDel').onclick=function(){ close(); deleteItem(it.id); };
+  inp.onkeydown=function(e){ if(e.key==='Enter')apply(); else if(e.key==='Escape')close(); };
+  ov.onclick=function(e){ if(e.target===ov) close(); };
+}
 function renderItem(it){
   let el=canvas.querySelector(`[data-id="${it.id}"]`);
   if(!el){
     el=document.createElement("div"); el.className="item"; el.dataset.id=it.id;
     canvas.appendChild(el);
     attachDrag(el,it);
-    el.addEventListener("dblclick",ev=>{ev.preventDefault();ev.stopPropagation();editItemNumber(it);});
+    el.addEventListener("dblclick",ev=>{ev.preventDefault();ev.stopPropagation(); if(TYPES[it.type]&&TYPES[it.type].mat==="text") editItemText(it); else editItemNumber(it);});
   }
   el.style.width=it.w+"px"; el.style.height=it.h+"px";
   el.style.left=it.x+"px"; el.style.top=it.y+"px";
   el.style.transform=`rotate(${it.rot||0}deg)`;
-  const key=it.type+"_"+it.w+"x"+it.h;
+  const isNote=TYPES[it.type]&&TYPES[it.type].mat==="text";
+  const key=isNote?("txt_"+(it.txt||"")):(it.type+"_"+it.w+"x"+it.h);
   if(el.dataset.art!==key){
-    el.innerHTML=artSVG(it.type,it.w,it.h)+'<span class="rot-line"></span><span class="rot-h"></span><span class="lbl"></span>';
+    if(isNote){
+      el.innerHTML='<span class="rot-line"></span><span class="rot-h"></span>';
+      const sp=document.createElement("span"); sp.className="tnote"; sp.textContent=it.txt||"";
+      el.appendChild(sp);
+    } else {
+      el.innerHTML=artSVG(it.type,it.w,it.h)+'<span class="rot-line"></span><span class="rot-h"></span><span class="lbl"></span>';
+    }
     el.dataset.art=key;
   }
   const L=el.querySelector(".lbl");
-  const hasNum=($("#chkLabels").checked && it.num!=null && it.num!=="");
-  L.textContent = hasNum ? it.num : "";
-  L.style.display = hasNum ? "inline-flex" : "none";
-  L.style.transform = "rotate("+(-(it.rot||0))+"deg)";
+  if(L){
+    const hasNum=($("#chkLabels").checked && it.num!=null && it.num!=="");
+    L.textContent = hasNum ? it.num : "";
+    L.style.display = hasNum ? "inline-flex" : "none";
+    L.style.transform = "rotate("+(-(it.rot||0))+"deg)";
+  }
   const inSel = selUnion().has(it.id);
   el.classList.toggle("sel", inSel);
   el.classList.toggle("primary", it.id===selectedId);
@@ -611,7 +652,7 @@ function dupSelection(){
   selSet.forEach(id=>{ const o=state.items.find(i=>i.id===id); if(!o) return; const k=o.group?("g"+o.group):("i"+o.id); if(!groups.has(k)) groups.set(k,groupOf(o)); });
   const need={};
   groups.forEach(items=>items.forEach(p=>need[p.type]=(need[p.type]||0)+1));
-  for(const k in need){ if(usedCount(k)+need[k] > (state.inventory[k]||0)){ toast("Sem unidades disponíveis",true); return; } }
+  for(const k in need){ if(TYPES[k]&&TYPES[k].mat==="text") continue; if(usedCount(k)+need[k] > (state.inventory[k]||0)){ toast("Sem unidades disponíveis",true); return; } }
   pushHistory();
   const newSel=new Set(); let last=null;
   groups.forEach(items=>{
@@ -688,19 +729,21 @@ function addItem(type){
   const now=Date.now();
   if(type===_lastAdd.k && now-_lastAdd.t<350) return; /* bloqueia toque duplicado */
   _lastAdd={t:now,k:type};
-  const total=state.inventory[type]??0;
-  if(usedCount(type)>=total){ toast("Sem unidades disponíveis de "+TYPES[type].nome,true); return; }
   const t=TYPES[type];
+  const total=state.inventory[type]??0;
+  if(t.mat!=="text" && usedCount(type)>=total){ toast("Sem unidades disponíveis de "+TYPES[type].nome,true); return; }
   const [vx,vy]=visibleCenter();
   const off=(state.items.length%6)*12;
   const it={id:uid++, type,
     x:Math.max(0,Math.min(state.canvasW-t.w,Math.round(vx-t.w/2+off))),
     y:Math.max(0,Math.min(state.canvasH-t.h,Math.round(vy-t.h/2+off))),
     w:t.w, h:t.h, rot:0};
+  if(t.mat==="text"){ it.txt="Escreva aqui"; it.w=noteW(it.txt); }
   pushHistory();
   state.items.push(it);
   selectedId=it.id; selSet=new Set([it.id]);
   renderCanvas(); refreshPaletteCounts(); updateSelBar(); saveWorking();
+  if(t.mat==="text") setTimeout(()=>editItemText(it),60);
 }
 function deleteItem(id){
   const o=state.items.find(i=>i.id===id); if(!o) return;
